@@ -33,6 +33,7 @@ public class NavMeshNPCController : MonoBehaviour
         }
     }
 
+    // Prova altro
     void Update()
     {
         if (target != null)
