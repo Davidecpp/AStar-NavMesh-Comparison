@@ -87,36 +87,67 @@ public class Heatmap : MonoBehaviour
 
     public void RegisterPosition(Vector3 worldPosition)
     {
-        int x = Mathf.FloorToInt((worldPosition.x - originOffset.x) / cellSize);
-        int y = Mathf.FloorToInt((worldPosition.z - originOffset.y) / cellSize);
+        int centerX = Mathf.FloorToInt((worldPosition.x - originOffset.x) / cellSize);
+        int centerY = Mathf.FloorToInt((worldPosition.z - originOffset.y) / cellSize);
 
-        if (x >= 0 && x < width && y >= 0 && y < height)
+        int radius = 2; // raggio in celle
+        float maxIntensity = 1f;
+
+        for (int x = -radius; x <= radius; x++)
         {
-            heatmap[x, y]++;
-            Debug.Log($"[HEATMAP] Posizione registrata: ({x}, {y})");
+            for (int y = -radius; y <= radius; y++)
+            {
+                int px = centerX + x;
+                int py = centerY + y;
+
+                if (px >= 0 && px < width && py >= 0 && py < height)
+                {
+                    float distance = Mathf.Sqrt(x * x + y * y);
+                    float intensity = Mathf.Clamp01(1 - (distance / (radius + 0.1f))); // calore decrescente
+
+                    heatmap[px, py] += Mathf.RoundToInt(maxIntensity * intensity * 10f); // amplifica
+                }
+            }
         }
-        else
-        {
-            Debug.LogWarning($"[HEATMAP] Posizione fuori dai limiti: {worldPosition}");
-        }
+
+        Debug.Log($"[HEATMAP] Posizione registrata (area): ({centerX}, {centerY})");
     }
+
 
 
 
     public void UpdateHeatmapTexture()
     {
         int max = heatmap.Cast<int>().Max();
+        if (max == 0) max = 1; // evita divisione per zero
+
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
                 float t = Mathf.Log(heatmap[x, y] + 1) / Mathf.Log(max + 1);
-                //t = Mathf.Clamp01(t * 5);
-                Color c = Color.Lerp(Color.blue, Color.red, t);
+                Color c = GetHeatmapColor(t);
                 heatmapTexture.SetPixel(x, y, c);
             }
         }
         heatmapTexture.Apply();
-
     }
+
+    private Color GetHeatmapColor(float t)
+    {
+        t = Mathf.Clamp01(t);
+
+        if (t < 0.2f)
+            return Color.Lerp(Color.blue, Color.cyan, t / 0.2f); // 0.0 - 0.2
+        else if (t < 0.4f)
+            return Color.Lerp(Color.cyan, Color.green, (t - 0.2f) / 0.2f); // 0.2 - 0.4
+        else if (t < 0.6f)
+            return Color.Lerp(Color.green, Color.yellow, (t - 0.4f) / 0.2f); // 0.4 - 0.6
+        else if (t < 0.8f)
+            return Color.Lerp(Color.yellow, new Color(1f, 0.5f, 0f), (t - 0.6f) / 0.2f); // 0.6 - 0.8 (arancione)
+        else
+            return Color.Lerp(new Color(1f, 0.5f, 0f), Color.red, (t - 0.8f) / 0.2f); // 0.8 - 1.0
+    }
+
+
 }
