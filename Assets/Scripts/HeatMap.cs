@@ -34,6 +34,11 @@ public class Heatmap : MonoBehaviour
 
     public TMP_Text heatmapInfoText;
 
+    public Button allButton;
+    public Button navMeshButton;
+    public Button aStarButton;
+
+
 
     void Start()
     {
@@ -69,6 +74,7 @@ public class Heatmap : MonoBehaviour
 
         heatmapPlane.SetActive(false);
         Keyboard = Keyboard.current;
+        SetHeatmapAll();
     }
 
 
@@ -89,21 +95,15 @@ public class Heatmap : MonoBehaviour
         // Cambia tipo di heatmap con tasti Q, W, E
         if (Keyboard.qKey.wasPressedThisFrame)
         {
-            currentHeatmapType = HeatmapType.All;
-            UpdateHeatmapTexture();
-            heatmapInfoText.text = "Heatmap Type: All (NavMesh + AStar)";
+            SetHeatmapAll();
         }
         if (Keyboard.wKey.wasPressedThisFrame)
         {
-            currentHeatmapType = HeatmapType.NavMesh;
-            UpdateHeatmapTexture();
-            heatmapInfoText.text = "Heatmap Type: NavMesh";
+            SetHeatmapNavMesh();
         }
         if (Keyboard.eKey.wasPressedThisFrame)
         {
-            currentHeatmapType = HeatmapType.AStar;
-            UpdateHeatmapTexture();
-            heatmapInfoText.text = "Heatmap Type: AStar";
+            SetHeatmapAStar();
         }
 
         // Aggiornamento periodico della texture, se visibile
@@ -199,6 +199,32 @@ public class Heatmap : MonoBehaviour
 
         heatmapTexture.Apply();
     }
+    public void SetHeatmapAll()
+    {
+        currentHeatmapType = HeatmapType.All;
+        UpdateHeatmapTexture();
+        if (heatmapInfoText != null)
+            heatmapInfoText.text = "Heatmap Type: All (NavMesh + AStar)";
+        UpdateButtonHighlights();
+    }
+
+    public void SetHeatmapNavMesh()
+    {
+        currentHeatmapType = HeatmapType.NavMesh;
+        UpdateHeatmapTexture();
+        if (heatmapInfoText != null)
+            heatmapInfoText.text = "Heatmap Type: NavMesh";
+        UpdateButtonHighlights();
+    }
+
+    public void SetHeatmapAStar()
+    {
+        currentHeatmapType = HeatmapType.AStar;
+        UpdateHeatmapTexture();
+        if (heatmapInfoText != null)
+            heatmapInfoText.text = "Heatmap Type: AStar";
+        UpdateButtonHighlights();
+    }
 
 
     private Color GetHeatmapColor(float t)
@@ -216,4 +242,20 @@ public class Heatmap : MonoBehaviour
         else
             return Color.Lerp(new Color(1f, 0.5f, 0f), Color.red, (t - 0.8f) / 0.2f); // 0.8 - 1.0
     }
+
+    private void UpdateButtonHighlights()
+    {
+        Color activeColor = Color.white;     // evidenziato
+        Color inactiveColor = Color.gray;    // disattivo
+
+        if (allButton != null)
+            allButton.image.color = (currentHeatmapType == HeatmapType.All) ? activeColor : inactiveColor;
+
+        if (navMeshButton != null)
+            navMeshButton.image.color = (currentHeatmapType == HeatmapType.NavMesh) ? activeColor : inactiveColor;
+
+        if (aStarButton != null)
+            aStarButton.image.color = (currentHeatmapType == HeatmapType.AStar) ? activeColor : inactiveColor;
+    }
+
 }

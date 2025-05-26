@@ -31,8 +31,6 @@ public class NPCMovementTracker : MonoBehaviour
             {
                 heatmapManager.RegisterPosition(transform.position, HeatmapType.All);
             }
-
-
     }
 
 }
