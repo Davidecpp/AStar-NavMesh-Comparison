@@ -69,7 +69,7 @@ public class WallPlacer : MonoBehaviour
         }
 
         // Cambio rotazione con Spazio
-        if (Keyboard.current.spaceKey.wasPressedThisFrame)
+        if (Keyboard.current.rKey.wasPressedThisFrame)
         {
             currentRotation = currentRotation == Quaternion.identity
                 ? Quaternion.Euler(0, 90, 0)
