@@ -1,0 +1,50 @@
+<b>== NPC NavMesh ==</b>
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 21,13 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 21,89 m, PathTime: 8,74 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 24,94 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 19,69 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 24,24 m, PathTime: 5,56 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 16,89 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 23,92 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 19,00 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 23,15 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 18,59 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 22,82 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 26,11 m, PathTime: 5,48 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 21,05 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 23,24 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 23,00 m, PathTime: 5,47 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 24,16 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 20,21 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 20,51 m, PathTime: 8,74 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 25,03 m, PathTime: 5,43 s, CalcTime: 0,00 ms
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 25,05 m, PathTime: 8,75 s, CalcTime: 0,00 ms
+<b>Media distanza:</b> 22,23 m
+<b>Media PathTime:</b> 8,09 s
+<b>Media CalcTime:</b> 0,00 ms
+
+<b>== NPC A* ==</b>
+[A* NPC] AStar_NPC(Clone) - Distanza: 40,45 m, PathTime: 8,71 s, CalcTime: 13,48 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 40,48 m, PathTime: 8,71 s, CalcTime: 13,45 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 42,21 m, PathTime: 8,71 s, CalcTime: 13,40 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 41,81 m, PathTime: 8,71 s, CalcTime: 13,35 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 41,83 m, PathTime: 8,70 s, CalcTime: 13,30 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 34,69 m, PathTime: 8,70 s, CalcTime: 13,24 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 41,61 m, PathTime: 8,70 s, CalcTime: 13,19 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 36,02 m, PathTime: 8,70 s, CalcTime: 13,15 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 41,69 m, PathTime: 8,70 s, CalcTime: 13,11 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 41,50 m, PathTime: 8,70 s, CalcTime: 13,07 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 41,56 m, PathTime: 8,70 s, CalcTime: 13,05 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 42,55 m, PathTime: 8,70 s, CalcTime: 13,03 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 41,67 m, PathTime: 8,70 s, CalcTime: 13,01 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 41,60 m, PathTime: 8,70 s, CalcTime: 12,99 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 41,81 m, PathTime: 8,70 s, CalcTime: 12,97 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 41,76 m, PathTime: 8,70 s, CalcTime: 12,94 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 41,48 m, PathTime: 8,70 s, CalcTime: 12,93 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 42,15 m, PathTime: 8,70 s, CalcTime: 12,91 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 42,55 m, PathTime: 8,70 s, CalcTime: 12,90 ms
+[A* NPC] AStar_NPC(Clone) - Distanza: 42,09 m, PathTime: 8,70 s, CalcTime: 12,88 ms
+<b>Media distanza:</b> 41,08 m
+<b>Media PathTime:</b> 8,70 s
+<b>Media CalcTime:</b> 13,12 ms
+
