@@ -2,12 +2,14 @@ using UnityEngine;
 using System.Linq;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using TMPro;
 
 public class Heatmap : MonoBehaviour
 {
     public int width = 100;
     public int height = 100;
     public float cellSize = 1f;
+
     public Texture2D heatmapTexture;
     public Material heatmapMaterial;
     public GameObject heatmapPlane;
@@ -24,10 +26,21 @@ public class Heatmap : MonoBehaviour
     private float heatmapUpdateInterval = 0.2f;
     private float heatmapUpdateTimer = 0f;
 
+    public enum HeatmapType { All, NavMesh, AStar }
+    public HeatmapType currentHeatmapType = HeatmapType.All;
+
+    private int[,] navMeshHeatmap;
+    private int[,] astarHeatmap;
+
+    public TMP_Text heatmapInfoText;
+
 
     void Start()
     {
         heatmap = new int[width, height];
+        navMeshHeatmap = new int[width, height];
+        astarHeatmap = new int[width, height];
+
         heatmapTexture = new Texture2D(width, height);
         heatmapTexture.filterMode = FilterMode.Point;
 
@@ -54,14 +67,14 @@ public class Heatmap : MonoBehaviour
     originOffset.y + (height * cellSize) / 2f
 );
 
-
-        heatmapPlane.SetActive(false); // start nascosto
+        heatmapPlane.SetActive(false);
         Keyboard = Keyboard.current;
     }
 
 
     void Update()
     {
+        // Toggle heatmap visibility
         if (Keyboard.spaceKey.wasPressedThisFrame)
         {
             heatmapVisible = !heatmapVisible;
@@ -73,7 +86,27 @@ public class Heatmap : MonoBehaviour
                 UpdateHeatmapTexture();
         }
 
-        // Aggiornamento periodico se visibile
+        // Cambia tipo di heatmap con tasti Q, W, E
+        if (Keyboard.qKey.wasPressedThisFrame)
+        {
+            currentHeatmapType = HeatmapType.All;
+            UpdateHeatmapTexture();
+            heatmapInfoText.text = "Heatmap Type: All (NavMesh + AStar)";
+        }
+        if (Keyboard.wKey.wasPressedThisFrame)
+        {
+            currentHeatmapType = HeatmapType.NavMesh;
+            UpdateHeatmapTexture();
+            heatmapInfoText.text = "Heatmap Type: NavMesh";
+        }
+        if (Keyboard.eKey.wasPressedThisFrame)
+        {
+            currentHeatmapType = HeatmapType.AStar;
+            UpdateHeatmapTexture();
+            heatmapInfoText.text = "Heatmap Type: AStar";
+        }
+
+        // Aggiornamento periodico della texture, se visibile
         if (heatmapVisible)
         {
             heatmapUpdateTimer += Time.deltaTime;
@@ -85,12 +118,13 @@ public class Heatmap : MonoBehaviour
         }
     }
 
-    public void RegisterPosition(Vector3 worldPosition)
+    // Registra una posizione nella heatmap
+    public void RegisterPosition(Vector3 worldPosition, HeatmapType type)
     {
         int centerX = Mathf.FloorToInt((worldPosition.x - originOffset.x) / cellSize);
         int centerY = Mathf.FloorToInt((worldPosition.z - originOffset.y) / cellSize);
 
-        int radius = 2; // raggio in celle
+        int radius = 2;
         float maxIntensity = 1f;
 
         for (int x = -radius; x <= radius; x++)
@@ -100,38 +134,72 @@ public class Heatmap : MonoBehaviour
                 int px = centerX + x;
                 int py = centerY + y;
 
+                // Controlla se le coordinate sono all'interno dei limiti della heatmap
                 if (px >= 0 && px < width && py >= 0 && py < height)
                 {
                     float distance = Mathf.Sqrt(x * x + y * y);
-                    float intensity = Mathf.Clamp01(1 - (distance / (radius + 0.1f))); // calore decrescente
+                    float intensity = Mathf.Clamp01(1 - (distance / (radius + 0.1f)));
+                    int value = Mathf.RoundToInt(maxIntensity * intensity * 10f);
 
-                    heatmap[px, py] += Mathf.RoundToInt(maxIntensity * intensity * 10f); // amplifica
+                    // Aggiungi il valore alla heatmap corrispondente
+                    switch (type)
+                    {
+                        case HeatmapType.NavMesh:
+                            navMeshHeatmap[px, py] += value;
+                            break;
+                        case HeatmapType.AStar:
+                            astarHeatmap[px, py] += value;
+                            break;
+                        case HeatmapType.All:
+                            navMeshHeatmap[px, py] += value;
+                            astarHeatmap[px, py] += value;
+                            break;
+                    }
                 }
             }
         }
-
-        Debug.Log($"[HEATMAP] Posizione registrata (area): ({centerX}, {centerY})");
     }
 
 
-
-
+    // Aggiorna la texture della heatmap in base ai dati registrati
     public void UpdateHeatmapTexture()
     {
-        int max = heatmap.Cast<int>().Max();
-        if (max == 0) max = 1; // evita divisione per zero
+        int[,] targetHeatmap;
+
+        switch (currentHeatmapType)
+        {
+            case HeatmapType.NavMesh:
+                targetHeatmap = navMeshHeatmap;
+                break;
+            case HeatmapType.AStar:
+                targetHeatmap = astarHeatmap;
+                break;
+            case HeatmapType.All:
+                targetHeatmap = new int[width, height];
+                for (int x = 0; x < width; x++)
+                    for (int y = 0; y < height; y++)
+                        targetHeatmap[x, y] = navMeshHeatmap[x, y] + astarHeatmap[x, y];
+                break;
+            default:
+                return;
+        }
+
+        int max = targetHeatmap.Cast<int>().Max();
+        if (max == 0) max = 1;
 
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
-                float t = Mathf.Log(heatmap[x, y] + 1) / Mathf.Log(max + 1);
+                float t = Mathf.Log(targetHeatmap[x, y] + 1) / Mathf.Log(max + 1);
                 Color c = GetHeatmapColor(t);
                 heatmapTexture.SetPixel(x, y, c);
             }
         }
+
         heatmapTexture.Apply();
     }
+
 
     private Color GetHeatmapColor(float t)
     {
@@ -148,6 +216,4 @@ public class Heatmap : MonoBehaviour
         else
             return Color.Lerp(new Color(1f, 0.5f, 0f), Color.red, (t - 0.8f) / 0.2f); // 0.8 - 1.0
     }
-
-
 }

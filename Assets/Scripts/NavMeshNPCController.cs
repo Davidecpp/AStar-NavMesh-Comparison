@@ -70,7 +70,7 @@ public class NavMeshNPCController : MonoBehaviour
                 if (!agent.hasPath || agent.velocity.sqrMagnitude == 0f)
                 {
                     movementStopwatch.Stop();
-                    Debug.Log("Tempo impiegato NavMesh: " + movementStopwatch.Elapsed.TotalSeconds + " secondi");
+                    //Debug.Log("Tempo impiegato NavMesh: " + movementStopwatch.Elapsed.TotalSeconds + " secondi");
                     isMoving = false;
                 }
             }

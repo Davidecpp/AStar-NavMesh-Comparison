@@ -436,3 +436,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   heatmapManager: {fileID: 0}
+  npcName: AStar

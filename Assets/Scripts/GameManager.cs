@@ -20,7 +20,7 @@ public class GameManager : MonoBehaviour
         {
             SceneManager.LoadScene(0);
         }
-        if (keyboard.eKey.wasPressedThisFrame)
+        /*if (keyboard.eKey.wasPressedThisFrame)
         {
             if (obstacle.activeSelf)
             {
@@ -32,6 +32,6 @@ public class GameManager : MonoBehaviour
             }
             Bounds bounds = obstacle.GetComponent<Collider>().bounds;
             AstarPath.active.UpdateGraphs(bounds);
-        }
+        }*/
     }
 }
