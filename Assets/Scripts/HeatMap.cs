@@ -33,7 +33,6 @@ public class Heatmap : MonoBehaviour
     private int[,] astarHeatmap;
 
     public TMP_Text heatmapInfoText;
-    public TMP_Text arrowsTxt;
 
 
     void Start()
@@ -93,21 +92,18 @@ public class Heatmap : MonoBehaviour
             currentHeatmapType = HeatmapType.All;
             UpdateHeatmapTexture();
             heatmapInfoText.text = "Heatmap Type: All (NavMesh + AStar)";
-            arrowsTxt.text = "->";
         }
         if (Keyboard.wKey.wasPressedThisFrame)
         {
             currentHeatmapType = HeatmapType.NavMesh;
             UpdateHeatmapTexture();
             heatmapInfoText.text = "Heatmap Type: NavMesh";
-            arrowsTxt.text = "<-     ->";
         }
         if (Keyboard.eKey.wasPressedThisFrame)
         {
             currentHeatmapType = HeatmapType.AStar;
             UpdateHeatmapTexture();
             heatmapInfoText.text = "Heatmap Type: AStar";
-            arrowsTxt.text = "<-";
         }
 
         // Aggiornamento periodico della texture, se visibile
