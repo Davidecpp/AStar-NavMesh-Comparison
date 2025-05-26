@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Linq;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 public class Heatmap : MonoBehaviour
 {
@@ -18,6 +19,7 @@ public class Heatmap : MonoBehaviour
     Keyboard Keyboard;
 
     public Vector2 originOffset = new Vector2(0, 0); // Offset per X e Z
+    public RawImage heatmapDisplay;
 
 
     void Start()
@@ -25,6 +27,12 @@ public class Heatmap : MonoBehaviour
         heatmap = new int[width, height];
         heatmapTexture = new Texture2D(width, height);
         heatmapTexture.filterMode = FilterMode.Point;
+
+        if (heatmapDisplay != null)
+        {
+            heatmapDisplay.texture = heatmapTexture;
+            heatmapDisplay.gameObject.SetActive(false); // inizialmente nascosta
+        }
 
         planeRenderer = heatmapPlane.GetComponent<Renderer>();
         planeRenderer.material = heatmapMaterial;
@@ -54,13 +62,14 @@ public class Heatmap : MonoBehaviour
         if (Keyboard.spaceKey.wasPressedThisFrame)
         {
             heatmapVisible = !heatmapVisible;
-            heatmapPlane.SetActive(heatmapVisible);
+
+            if (heatmapDisplay != null)
+                heatmapDisplay.gameObject.SetActive(heatmapVisible);
 
             if (heatmapVisible)
-            {
                 UpdateHeatmapTexture();
-            }
         }
+
     }
 
     public void RegisterPosition(Vector3 worldPosition)
