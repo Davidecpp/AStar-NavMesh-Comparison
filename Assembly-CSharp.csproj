@@ -61,6 +61,7 @@
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.0.47f1\Editor\Data\Tools\Unity.SourceGenerators\Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Scripts\HeatMap.cs" />
     <Compile Include="Assets\Scripts\FPSCounter.cs" />
     <Compile Include="Assets\Scripts\NavMeshNPCController.cs" />
     <Compile Include="Assets\Scripts\NavMeshPathVisualizer.cs" />
@@ -73,6 +74,7 @@
     <Compile Include="Assets\Scripts\AStarTimer.cs" />
     <Compile Include="Assets\Scripts\AStarNPCController.cs" />
     <Compile Include="Assets\Scripts\CameraController.cs" />
+    <Compile Include="Assets\Scripts\NPCMovementTracker.cs" />
     <Compile Include="Assets\Scripts\PerformanceOverlay.cs" />
     <Compile Include="Assets\Scripts\MemoryUsage.cs" />
   </ItemGroup>
