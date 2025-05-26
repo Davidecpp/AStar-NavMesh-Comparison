@@ -21,6 +21,9 @@ public class Heatmap : MonoBehaviour
     public Vector2 originOffset = new Vector2(0, 0); // Offset per X e Z
     public RawImage heatmapDisplay;
 
+    private float heatmapUpdateInterval = 0.2f;
+    private float heatmapUpdateTimer = 0f;
+
 
     void Start()
     {
@@ -31,7 +34,7 @@ public class Heatmap : MonoBehaviour
         if (heatmapDisplay != null)
         {
             heatmapDisplay.texture = heatmapTexture;
-            heatmapDisplay.gameObject.SetActive(false); // inizialmente nascosta
+            heatmapDisplay.gameObject.SetActive(false);
         }
 
         planeRenderer = heatmapPlane.GetComponent<Renderer>();
@@ -70,6 +73,16 @@ public class Heatmap : MonoBehaviour
                 UpdateHeatmapTexture();
         }
 
+        // Aggiornamento periodico se visibile
+        if (heatmapVisible)
+        {
+            heatmapUpdateTimer += Time.deltaTime;
+            if (heatmapUpdateTimer >= heatmapUpdateInterval)
+            {
+                UpdateHeatmapTexture();
+                heatmapUpdateTimer = 0f;
+            }
+        }
     }
 
     public void RegisterPosition(Vector3 worldPosition)
