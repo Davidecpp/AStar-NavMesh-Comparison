@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.InputSystem;
 using Pathfinding;
 using static MovingObstacle;
@@ -37,7 +37,7 @@ public class WallPlacer : MonoBehaviour
 
     void Update()
     {
-        // Controllo per evitare piazzamento se il pannello delle statistiche degli NPC è aperto
+        // Controllo per evitare piazzamento se il pannello delle statistiche degli NPC aperto
         if (NPCSpawner.panelStatsOpen)
         {
             previewWall.SetActive(false);

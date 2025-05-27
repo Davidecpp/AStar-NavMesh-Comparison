@@ -122,23 +122,13 @@ public class NavMeshNPCController : MonoBehaviour
         }
     }
 
-    private void DrawPath(NavMeshPath path)
-    {
-        if (path == null || path.corners.Length < 2)
-            return;
-
-        for (int i = 0; i < path.corners.Length - 1; i++)
-        {
-            Debug.DrawLine(path.corners[i], path.corners[i + 1], Color.green, 5f);
-        }
-    }
     public float GetDistance()
     {
         return distanceTravelled;
     }
     public double GetPathTime() // Restituisce il tempo di percorrenza
     {
-        if(movementStopwatch == null)
+        if (movementStopwatch == null)
         {
             Debug.Log("Movement stopwatch non inizializzato!");
             return 0;
