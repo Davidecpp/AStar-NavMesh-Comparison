@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using UnityEngine;
 using UnityEngine.AI;
+using Debug = UnityEngine.Debug;
 
 [RequireComponent(typeof(LineRenderer), typeof(NavMeshAgent))]
 public class NavMeshPathLine : MonoBehaviour
@@ -25,5 +27,6 @@ public class NavMeshPathLine : MonoBehaviour
         {
             lineRenderer.positionCount = 0;
         }
+
     }
 }

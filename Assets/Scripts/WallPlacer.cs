@@ -37,6 +37,7 @@ public class WallPlacer : MonoBehaviour
 
     void Update()
     {
+        // Controllo per evitare piazzamento se il pannello delle statistiche degli NPC è aperto
         if (NPCSpawner.panelStatsOpen)
         {
             previewWall.SetActive(false);
@@ -108,6 +109,7 @@ public class WallPlacer : MonoBehaviour
             GameObject wallInstance = Instantiate(wallPrefab, pos, rot);
             Bounds bounds = wallInstance.GetComponent<Collider>().bounds;
             AstarPath.active.UpdateGraphs(bounds);
+            RecalculateNavPath();
         }
 
         // Rimozione muro con click destro
@@ -117,8 +119,12 @@ public class WallPlacer : MonoBehaviour
             Destroy(wallHighlighted);
             AstarPath.active.UpdateGraphs(bounds);
             wallHighlighted = null;
+            RecalculateNavPath();
         }
+    }
 
+    void RecalculateNavPath()
+    {
         if (navMeshSurface != null)
         {
             navMeshSurface.UpdateNavMesh(navMeshSurface.navMeshData);

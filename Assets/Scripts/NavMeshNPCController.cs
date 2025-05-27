@@ -10,7 +10,8 @@ public class NavMeshNPCController : MonoBehaviour
     public Transform target;
     private NavMeshAgent agent;
 
-    private Stopwatch movementStopwatch;
+    private Stopwatch movementStopwatch = new Stopwatch();
+
     private bool isMoving = false;
 
     private Vector3 lastPosition;
@@ -19,13 +20,29 @@ public class NavMeshNPCController : MonoBehaviour
 
     private Animator animator;
 
+    private void OnNavMeshUpdated()
+    {
+        if (target != null && agent != null)
+        {
+            //Debug.Log($"{gameObject.name} riceve NavMeshUpdated: ricalcolo destinazione");
+            agent.SetDestination(target.position);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        WallPlacer.NavMeshUpdated -= OnNavMeshUpdated;
+    }
+
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
         movementStopwatch = new Stopwatch();
-
         lastPosition = transform.position;
+
+        WallPlacer.NavMeshUpdated += OnNavMeshUpdated;
 
         if (target != null)
         {
@@ -33,13 +50,14 @@ public class NavMeshNPCController : MonoBehaviour
         }
     }
 
+
     // Prova altro
     void Update()
     {
         if (target != null)
         {
             // Ricalcola il percorso ogni 60 frame
-            if (isMoving && Time.frameCount % 60 == 0)
+            /*if (isMoving && Time.frameCount % 60 == 0)
             {
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
@@ -48,11 +66,10 @@ public class NavMeshNPCController : MonoBehaviour
 
                 stopwatch.Stop();
                 lastCalcTime = stopwatch.Elapsed.TotalMilliseconds;
-            }
+            }*/
 
             // Controlla movimento e aggiorna movementStopwatch
             if (!isMoving && agent.hasPath && agent.remainingDistance > agent.stoppingDistance && agent.velocity.sqrMagnitude > 0.01f)
-
             {
                 movementStopwatch.Restart();
                 isMoving = true;
@@ -97,7 +114,7 @@ public class NavMeshNPCController : MonoBehaviour
         if (success)
         {
             agent.SetPath(path);
-            DrawPath(path);
+            //DrawPath(path);
         }
         else
         {
