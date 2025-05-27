@@ -57,7 +57,7 @@ public class NavMeshNPCController : MonoBehaviour
         if (target != null)
         {
             // Ricalcola il percorso ogni 60 frame
-            /*if (isMoving && Time.frameCount % 60 == 0)
+            if (isMoving && Time.frameCount % 60 == 0)
             {
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
@@ -66,7 +66,7 @@ public class NavMeshNPCController : MonoBehaviour
 
                 stopwatch.Stop();
                 lastCalcTime = stopwatch.Elapsed.TotalMilliseconds;
-            }*/
+            }
 
             // Controlla movimento e aggiorna movementStopwatch
             if (!isMoving && agent.hasPath && agent.remainingDistance > agent.stoppingDistance && agent.velocity.sqrMagnitude > 0.01f)
