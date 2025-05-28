@@ -93,13 +93,16 @@ public class NavMeshNPCController : MonoBehaviour
             // Controlla se il personaggio ha raggiunto la destinazione
             if (isMoving && !agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
             {
-                if (!agent.hasPath || agent.velocity.sqrMagnitude == 0f)
+                if (!agent.hasPath || agent.velocity.sqrMagnitude < 0.01f)
                 {
                     movementStopwatch.Stop();
-                    //Debug.Log("Tempo impiegato NavMesh: " + movementStopwatch.Elapsed.TotalSeconds + " secondi");
                     isMoving = false;
+
+                    agent.isStopped = true; // ferma del tutto l'agente
+                    agent.ResetPath();      // evita piccoli ricalcoli
                 }
             }
+
             float speed = agent.velocity.magnitude;
             animator.SetFloat("Speed", speed);
         }
@@ -109,17 +112,20 @@ public class NavMeshNPCController : MonoBehaviour
     {
         target = newTarget;
 
-        // Calcola path e misura il tempo
+        // Applica un offset casuale alla destinazione
+        Vector2 offset2D = Random.insideUnitCircle * 2f; // raggio di dispersione
+        Vector3 offset = new Vector3(offset2D.x, 0, offset2D.y);
+        Vector3 destination = target.position + offset;
+
         NavMeshPath path = new NavMeshPath();
         Stopwatch stopwatch = new Stopwatch();
         stopwatch.Start();
 
-        bool success = NavMesh.CalculatePath(transform.position, target.position, NavMesh.AllAreas, path);
+        bool success = NavMesh.CalculatePath(transform.position, destination, NavMesh.AllAreas, path);
 
         stopwatch.Stop();
         lastCalcTime = stopwatch.Elapsed.TotalMilliseconds;
 
-        // Se il percorso è valido, imposta la destinazione
         if (success)
         {
             agent.SetPath(path);
@@ -129,6 +135,7 @@ public class NavMeshNPCController : MonoBehaviour
             Debug.LogWarning("NavMesh non ha trovato un percorso valido.");
         }
     }
+
 
     public float GetDistance()
     {
