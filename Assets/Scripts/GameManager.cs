@@ -20,18 +20,5 @@ public class GameManager : MonoBehaviour
         {
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
-        /*if (keyboard.eKey.wasPressedThisFrame)  
-        {  
-            if (obstacle.activeSelf)  
-            {  
-                obstacle.SetActive(false);  
-            }  
-            else  
-            {  
-                obstacle.SetActive(true);  
-            }  
-            Bounds bounds = obstacle.GetComponent<Collider>().bounds;  
-            AstarPath.active.UpdateGraphs(bounds);  
-        }*/
     }
 }

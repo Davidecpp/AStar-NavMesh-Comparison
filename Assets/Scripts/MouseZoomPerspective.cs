@@ -24,14 +24,11 @@ public class CameraZoom : MonoBehaviour
 
     void Start()
     {
-        // Ottieni il componente Camera
         cam = GetComponent<Camera>();
 
-        // Se non c'è una camera su questo oggetto, cerca quella principale
         if (cam == null)
             cam = Camera.main;
 
-        // Imposta lo zoom iniziale come quello corrente
         targetZoom = cam.fieldOfView;
         targetPosition = transform.position;
     }
@@ -59,10 +56,7 @@ public class CameraZoom : MonoBehaviour
 
         if (scrollInput.y != 0f)
         {
-            // Normalizza il valore dello scroll
             float normalizedScroll = Mathf.Sign(scrollInput.y);
-
-            // Salva il FOV precedente per calcolare il movimento
             float previousZoom = targetZoom;
 
             // Calcola il nuovo zoom target
@@ -72,36 +66,25 @@ public class CameraZoom : MonoBehaviour
             // Se lo zoom è cambiato e vogliamo zoomare verso il mouse
             if (zoomToMouse && targetZoom != previousZoom)
             {
-                // Ottieni la posizione del mouse in coordinate schermo
                 Vector2 mouseScreenPos = Mouse.current.position.ReadValue();
 
                 // Converti la posizione del mouse in un raggio dal mondo
                 Ray mouseRay = cam.ScreenPointToRay(mouseScreenPos);
 
-                // Calcola il punto nel mondo verso cui zoomare
-                // Usiamo una distanza fissa o il piano z=0 per semplicità
                 Vector3 mouseWorldPos = GetMouseWorldPosition(mouseRay);
 
-                // Calcola quanto movimento è necessario per centrare il mouse
                 float zoomFactor = (previousZoom - targetZoom) / previousZoom;
                 Vector3 direction = mouseWorldPos - transform.position;
 
-                // Applica il movimento proporzionale al cambio di zoom
                 targetPosition += direction * zoomFactor * zoomToMouseSensitivity;
             }
         }
     }
 
+    // Calcola la posizione del mouse nel mondo
     Vector3 GetMouseWorldPosition(Ray mouseRay)
     {
-        // Per una camera 3D, proiettiamo su un piano a una certa distanza
-        // Puoi modificare questo metodo in base alle tue esigenze specifiche
-
-        // Distanza di proiezione (regolabile in base al tuo setup)
         float projectionDistance = 10f;
-
-        // Se hai un piano specifico su cui proiettare (es. y=0 per un piano orizzontale)
-        // puoi usare Plane.Raycast invece
 
         return mouseRay.origin + mouseRay.direction * projectionDistance;
     }

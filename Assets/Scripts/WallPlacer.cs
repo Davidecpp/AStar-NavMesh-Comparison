@@ -137,6 +137,7 @@ public class WallPlacer : MonoBehaviour
         }
     }
 
+    // Ricalcola il percorso del NavMesh e notifica gli NPC
     void RecalculateNavPath()
     {
         if (previewWall != null)
@@ -157,8 +158,6 @@ public class WallPlacer : MonoBehaviour
 
         RecalculateNavPath();
     }
-
-
 
     void SetPreviewMaterial(GameObject wall)
     {
