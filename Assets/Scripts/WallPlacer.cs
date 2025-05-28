@@ -4,6 +4,7 @@ using Pathfinding;
 using static MovingObstacle;
 using Unity.AI.Navigation;
 using UnityEngine.EventSystems;
+using System.Collections;
 
 public class WallPlacer : MonoBehaviour
 {
@@ -28,6 +29,16 @@ public class WallPlacer : MonoBehaviour
     void Start()
     {
         mainCamera = Camera.main;
+
+        if (navMeshSurface != null)
+        {
+            navMeshSurface.BuildNavMesh();
+            Debug.Log("NavMesh costruito con successo.");
+        }
+        else
+        {
+            Debug.LogWarning("NavMeshSurface non assegnato. Assicurati di assegnarlo nell'Inspector.");
+        }
 
         // Crea la preview una sola volta
         previewWall = Instantiate(wallPrefab);
@@ -110,6 +121,7 @@ public class WallPlacer : MonoBehaviour
             Bounds bounds = wallInstance.GetComponent<Collider>().bounds;
             AstarPath.active.UpdateGraphs(bounds);
             RecalculateNavPath();
+            Debug.Log($"Muro posizionato in {pos} con rotazione {rot.eulerAngles}");
         }
 
         // Rimozione muro con click destro
@@ -119,20 +131,34 @@ public class WallPlacer : MonoBehaviour
             Destroy(wallHighlighted);
             AstarPath.active.UpdateGraphs(bounds);
             wallHighlighted = null;
-            RecalculateNavPath();
+            StartCoroutine(DelayedNavMeshUpdate());
+            //RecalculateNavPath();
+            Debug.Log($"Muro rimosso da {bounds.center} con dimensioni {bounds.size}");
         }
     }
 
     void RecalculateNavPath()
     {
+        if (previewWall != null)
+            previewWall.SetActive(false); // Disattiva la preview temporaneamente
+
         if (navMeshSurface != null)
         {
             navMeshSurface.UpdateNavMesh(navMeshSurface.navMeshData);
-
-            // Avvisa gli NPC di ricalcolare il percorso
-            NavMeshUpdated?.Invoke();
+            NavMeshUpdated?.Invoke(); // Notifica agli NPC di ricalcolare
         }
+
+        if (previewWall != null)
+            previewWall.SetActive(true); // Riattiva dopo aggiornamento
     }
+    IEnumerator DelayedNavMeshUpdate()
+    {
+        yield return null; // Attendi un frame per completare Destroy
+
+        RecalculateNavPath();
+    }
+
+
 
     void SetPreviewMaterial(GameObject wall)
     {

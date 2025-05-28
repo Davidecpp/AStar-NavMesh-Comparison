@@ -4,6 +4,7 @@ using System.Diagnostics;
 using UnityEngine.UI;
 using TMPro;
 using Debug = UnityEngine.Debug;
+using System.Collections;
 
 public class NavMeshNPCController : MonoBehaviour
 {
@@ -24,9 +25,18 @@ public class NavMeshNPCController : MonoBehaviour
     {
         if (target != null && agent != null)
         {
-            //Debug.Log($"{gameObject.name} riceve NavMeshUpdated: ricalcolo destinazione");
+            //StartCoroutine(wait());
+            Debug.Log($"{gameObject.name} riceve NavMeshUpdated: ricalcolo destinazione");
+            agent.ResetPath();
             agent.SetDestination(target.position);
         }
+    }
+    IEnumerator wait()
+    {
+        yield return new WaitForSeconds(0.5f);
+        Debug.Log($"{gameObject.name} riceve NavMeshUpdated: ricalcolo destinazione");
+        agent.ResetPath();
+        agent.SetDestination(target.position);
     }
 
     private void OnDestroy()
