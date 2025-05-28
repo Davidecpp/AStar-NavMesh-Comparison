@@ -166,6 +166,7 @@ public class Heatmap : MonoBehaviour
     {
         int[,] targetHeatmap;
 
+        // Determina quale heatmap usare in base al tipo corrente
         switch (currentHeatmapType)
         {
             case HeatmapType.NavMesh:
@@ -187,6 +188,7 @@ public class Heatmap : MonoBehaviour
         int max = targetHeatmap.Cast<int>().Max();
         if (max == 0) max = 1;
 
+        // Aggiorna i pixel della texture in base ai valori della heatmap
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
@@ -199,6 +201,8 @@ public class Heatmap : MonoBehaviour
 
         heatmapTexture.Apply();
     }
+
+    // Imposta il tipo di heatmap corrente e aggiorna la texture
     public void SetHeatmapAll()
     {
         currentHeatmapType = HeatmapType.All;
