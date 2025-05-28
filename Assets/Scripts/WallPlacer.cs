@@ -122,7 +122,7 @@ public class WallPlacer : MonoBehaviour
             Bounds bounds = wallInstance.GetComponent<Collider>().bounds;
             AstarPath.active.UpdateGraphs(bounds);
             RecalculateNavPath();
-            Debug.Log($"Muro posizionato in {pos} con rotazione {rot.eulerAngles}");
+            //Debug.Log($"Muro posizionato in {pos} con rotazione {rot.eulerAngles}");
         }
 
         // Rimozione muro con click destro
@@ -133,8 +133,7 @@ public class WallPlacer : MonoBehaviour
             AstarPath.active.UpdateGraphs(bounds);
             wallHighlighted = null;
             StartCoroutine(DelayedNavMeshUpdate());
-            //RecalculateNavPath();
-            Debug.Log($"Muro rimosso da {bounds.center} con dimensioni {bounds.size}");
+            //Debug.Log($"Muro rimosso da {bounds.center} con dimensioni {bounds.size}");
         }
     }
 
