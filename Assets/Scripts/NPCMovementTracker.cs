@@ -18,6 +18,7 @@ public class NPCMovementTracker : MonoBehaviour
 
     void Update()
     {
+        // Registra la posizione dell'NPC nella heatmap
         if (heatmapManager != null)
             if (npcName.Equals("Navmesh"))
             {

@@ -55,6 +55,7 @@ public class WallPlacer : MonoBehaviour
             ClearHighlight();
             return;
         }
+        // Controllo per evitare piazzamento se il mouse non si trova su un oggetto UI
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
         {
             previewWall.SetActive(false);

@@ -80,7 +80,7 @@ public class Heatmap : MonoBehaviour
 
     void Update()
     {
-        // Toggle heatmap visibility
+        // Spazio per toggle heatmap
         if (Keyboard.spaceKey.wasPressedThisFrame)
         {
             heatmapVisible = !heatmapVisible;

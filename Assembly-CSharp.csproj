@@ -76,7 +76,6 @@
     <Compile Include="Assets\Scripts\AStarNPCController.cs" />
     <Compile Include="Assets\Scripts\SceneChanger.cs" />
     <Compile Include="Assets\Scripts\NPCMovementTracker.cs" />
-    <Compile Include="Assets\Scripts\CameraController.cs" />
     <Compile Include="Assets\Scripts\PerformanceOverlay.cs" />
     <Compile Include="Assets\Scripts\MemoryUsage.cs" />
   </ItemGroup>

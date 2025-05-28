@@ -25,18 +25,10 @@ public class NavMeshNPCController : MonoBehaviour
     {
         if (target != null && agent != null)
         {
-            //StartCoroutine(wait());
             Debug.Log($"{gameObject.name} riceve NavMeshUpdated: ricalcolo destinazione");
             agent.ResetPath();
             agent.SetDestination(target.position);
         }
-    }
-    IEnumerator wait()
-    {
-        yield return new WaitForSeconds(0.5f);
-        Debug.Log($"{gameObject.name} riceve NavMeshUpdated: ricalcolo destinazione");
-        agent.ResetPath();
-        agent.SetDestination(target.position);
     }
 
     private void OnDestroy()
@@ -65,17 +57,6 @@ public class NavMeshNPCController : MonoBehaviour
     {
         if (target != null)
         {
-            // Ricalcola il percorso ogni 60 frame
-            /*if (isMoving && Time.frameCount % 60 == 0)
-            {
-                Stopwatch stopwatch = new Stopwatch();
-                stopwatch.Start();
-
-                agent.SetDestination(target.position);
-
-                stopwatch.Stop();
-                lastCalcTime = stopwatch.Elapsed.TotalMilliseconds;
-            }*/
 
             // Controlla movimento e aggiorna movementStopwatch
             if (!isMoving && agent.hasPath && agent.remainingDistance > agent.stoppingDistance && agent.velocity.sqrMagnitude > 0.01f)

@@ -17,8 +17,6 @@ public class AStarNPCController : MonoBehaviour
     public float distanceTravelled = 0f;
     private bool isMoving = false;
 
-    
-
     void Awake()
     {
         seeker = GetComponent<Seeker>();
@@ -69,6 +67,7 @@ public class AStarNPCController : MonoBehaviour
         }
     }
 
+    // Calcola il percorso verso il target
     public void CalculatePathToTarget()
     {
         if (seeker == null)
@@ -93,20 +92,6 @@ public class AStarNPCController : MonoBehaviour
     void OnPathComplete(Path path)
     {
         stopwatch.Stop();
-
-        /*if (calcTimeTxt != null)
-        {
-            if (!path.error)
-            {
-                //UnityEngine.Debug.Log("Tempo di calcolo A*: " + stopwatch.Elapsed.TotalMilliseconds + " ms");
-                calcTimeTxt.text = stopwatch.Elapsed.TotalMilliseconds.ToString("F2") + " ms";
-            }
-            else
-            {
-                UnityEngine.Debug.LogWarning("A* non ha trovato un percorso valido.");
-                calcTimeTxt.text = "Errore";
-            }
-        }*/
     }
 
     public float GetDistance()

@@ -26,6 +26,7 @@ public class MovingObstacle : MonoBehaviour
 
     void Update()
     {
+        // Muovi l'ostacolo tra startPosition e endPosition
         transform.position = Vector3.Lerp(startPosition, endPosition, Mathf.PingPong(Time.time * speed, 1));
 
         timer += Time.deltaTime;

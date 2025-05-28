@@ -29,6 +29,7 @@ public class AStarTimer : MonoBehaviour
 
         //Debug.Log($"hasPath: {aiPath.hasPath}, reachedEndOfPath: {aiPath.reachedEndOfPath}, pathPending: {aiPath.pathPending}, velocity: {aiPath.velocity.magnitude}");
 
+        // Inizia il timer quando l'agente ha un percorso valido e si sta muovendo
         if (!timerStarted && aiPath.hasPath && !aiPath.reachedEndOfPath && !aiPath.pathPending && aiPath.velocity.magnitude > 0.1f)
         {
             stopwatch.Start();
@@ -42,7 +43,6 @@ public class AStarTimer : MonoBehaviour
             timerStopped = true;
         }
     }
-
 
     public void ResetTimer()
     {
