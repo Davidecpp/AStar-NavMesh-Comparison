@@ -28,7 +28,6 @@ public class CameraZoom : MonoBehaviour
     private Vector3 targetPosition;
     private Vector3 positionVelocity = Vector3.zero;
 
-    // Variabili per il middle mouse drag
     private bool isMiddleMousePressed = false;
     private Vector2 lastMousePosition;
 
@@ -73,7 +72,6 @@ public class CameraZoom : MonoBehaviour
             targetZoom -= normalizedScroll * zoomSpeed;
             targetZoom = Mathf.Clamp(targetZoom, minZoom, maxZoom);
 
-            // Se lo zoom è cambiato e vogliamo zoomare verso il mouse
             if (zoomToMouse && targetZoom != previousZoom)
             {
                 Vector2 mouseScreenPos = Mouse.current.position.ReadValue();
