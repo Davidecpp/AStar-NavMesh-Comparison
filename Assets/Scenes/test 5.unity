@@ -2883,7 +2883,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2bbe42b61445694681f39c5af25e795, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  obstacle: {fileID: 1365214776}
 --- !u!114 &287940598
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3620,13 +3619,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 176cf7d60fe9238498b7248e43094e35, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  width: 100
-  height: 100
+  width: 200
+  height: 200
   cellSize: 1
   heatmapTexture: {fileID: 0}
   heatmapMaterial: {fileID: 2100000, guid: f11a20a08c24a7b42ac57dad72c37f87, type: 2}
   heatmapPlane: {fileID: 1166257470}
-  originOffset: {x: -50, y: -50}
+  originOffset: {x: -100, y: -100}
   heatmapDisplay: {fileID: 801852978}
   currentHeatmapType: 0
   heatmapInfoText: {fileID: 83983170}
@@ -10348,11 +10347,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1354439094}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &1365214776 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6857125448692564618, guid: 74c3d914755ec174ea5e3d41e0a82878, type: 3}
-  m_PrefabInstance: {fileID: 875827179310632881}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1365214777 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7316879261748363563, guid: 74c3d914755ec174ea5e3d41e0a82878, type: 3}
