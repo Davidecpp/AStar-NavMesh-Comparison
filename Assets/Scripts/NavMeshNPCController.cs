@@ -25,7 +25,7 @@ public class NavMeshNPCController : MonoBehaviour
     {
         if (target != null && agent != null)
         {
-            Debug.Log($"{gameObject.name} riceve NavMeshUpdated: ricalcolo destinazione");
+            //Debug.Log($"{gameObject.name} riceve NavMeshUpdated: ricalcolo destinazione");
             agent.ResetPath();
             agent.SetDestination(target.position);
         }
