@@ -100,9 +100,9 @@ public class NPCPhysicsToggleManager : MonoBehaviour
 
         rb.isKinematic = false;
         rb.mass = 1f;
-        rb.linearDamping = 8f; 
+        rb.linearDamping = 8f;
         rb.angularDamping = 10f;
-        rb.useGravity = false; 
+        rb.useGravity = false;
         rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
         rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
 
@@ -113,7 +113,7 @@ public class NPCPhysicsToggleManager : MonoBehaviour
         }
         avoidance.enabled = true;
 
-        ai.maxSpeed = Mathf.Max(ai.maxSpeed, 3f); 
+        ai.maxSpeed = Mathf.Max(ai.maxSpeed, 3f);
         ai.slowdownDistance = 3f;
         ai.pickNextWaypointDist = 2f;
         ai.enableRotation = true;
@@ -168,22 +168,89 @@ public class NPCAvoidance : MonoBehaviour
     public float maxAvoidanceSpeed = 8f;
     public LayerMask avoidanceLayers = -1;
 
+    [Header("Destination Settings")]
+    public float destinationRadius = 1f; // Distanza entro cui si considera arrivato a destinazione
+    public bool disableCollisionAtDestination = true; // Opzione per disabilitare le collisioni
+
     private AIPath aiPath;
     private Rigidbody rb;
+    private Collider col;
     private Vector3 avoidanceDirection;
+    private bool hasReachedDestination = false;
 
     private void Start()
     {
         aiPath = GetComponent<AIPath>();
         rb = GetComponent<Rigidbody>();
+        col = GetComponent<Collider>();
     }
 
     private void FixedUpdate()
     {
         if (aiPath == null || rb == null || !enabled) return;
 
-        CalculateAvoidance();
-        ApplyAvoidanceForce();
+        CheckDestinationStatus();
+
+        // Solo calcola evitamento se non ha raggiunto la destinazione
+        if (!hasReachedDestination || !disableCollisionAtDestination)
+        {
+            CalculateAvoidance();
+            ApplyAvoidanceForce();
+        }
+    }
+
+    private void CheckDestinationStatus()
+    {
+        bool wasAtDestination = hasReachedDestination;
+
+        // Controlla se l'NPC ha raggiunto la destinazione
+        if (aiPath.destination != null && aiPath.reachedDestination)
+        {
+            float distanceToDestination = Vector3.Distance(transform.position, aiPath.destination);
+            hasReachedDestination = distanceToDestination <= destinationRadius;
+        }
+        else
+        {
+            hasReachedDestination = false;
+        }
+
+        // Se lo stato è cambiato, aggiorna le collisioni
+        if (wasAtDestination != hasReachedDestination && disableCollisionAtDestination)
+        {
+            UpdateCollisionState();
+        }
+    }
+
+    private void UpdateCollisionState()
+    {
+        if (hasReachedDestination)
+        {
+            // Disabilita collisioni quando arriva a destinazione
+            if (col != null)
+            {
+                col.isTrigger = true;
+            }
+
+            if (rb != null)
+            {
+                rb.isKinematic = true;
+                rb.detectCollisions = false;
+            }
+        }
+        else
+        {
+            // Riabilita collisioni quando si muove verso una nuova destinazione
+            if (col != null)
+            {
+                col.isTrigger = false;
+            }
+
+            if (rb != null)
+            {
+                rb.isKinematic = false;
+                rb.detectCollisions = true;
+            }
+        }
     }
 
     private void CalculateAvoidance()
@@ -196,6 +263,11 @@ public class NPCAvoidance : MonoBehaviour
         foreach (var collider in nearbyColliders)
         {
             if (collider.gameObject == gameObject) continue;
+
+            // Ignora altri NPC che sono arrivati a destinazione
+            var otherAvoidance = collider.GetComponent<NPCAvoidance>();
+            if (otherAvoidance != null && otherAvoidance.hasReachedDestination && otherAvoidance.disableCollisionAtDestination)
+                continue;
 
             Vector3 directionAway = transform.position - collider.transform.position;
             float distance = directionAway.magnitude;
@@ -245,17 +317,40 @@ public class NPCAvoidance : MonoBehaviour
         }
     }
 
+    // Metodo pubblico per forzare il controllo dello stato di destinazione
+    public void ForceDestinationCheck()
+    {
+        CheckDestinationStatus();
+    }
+
+    // Metodo pubblico per ottenere lo stato di destinazione
+    public bool HasReachedDestination()
+    {
+        return hasReachedDestination;
+    }
+
     private void OnDrawGizmosSelected()
     {
         // Disegna il raggio di evitamento
-        Gizmos.color = Color.yellow;
+        Gizmos.color = hasReachedDestination ? Color.green : Color.yellow;
         Gizmos.DrawWireSphere(transform.position, avoidanceRadius);
+
+        // Disegna il raggio di destinazione
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position, destinationRadius);
 
         // Disegna la direzione di evitamento
         if (avoidanceDirection.magnitude > 0.1f)
         {
             Gizmos.color = Color.red;
             Gizmos.DrawRay(transform.position, avoidanceDirection * 2f);
+        }
+
+        // Disegna una linea verso la destinazione
+        if (aiPath != null && aiPath.destination != Vector3.zero)
+        {
+            Gizmos.color = hasReachedDestination ? Color.green : Color.cyan;
+            Gizmos.DrawLine(transform.position, aiPath.destination);
         }
     }
 }
