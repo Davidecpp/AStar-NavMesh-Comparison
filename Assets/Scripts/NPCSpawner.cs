@@ -20,6 +20,8 @@ public class NPCSpawner : MonoBehaviour
     public TMP_Text panelStatsTxt;
     public GameObject panelStats;
 
+    public NPCPhysicsToggleManager physicsToggleManager;
+
     public static bool panelStatsOpen = false;
 
     void Start()
@@ -57,6 +59,8 @@ public class NPCSpawner : MonoBehaviour
             {
                 GameObject navNpc = Instantiate(npcNavMeshPrefab, spawnPos, Quaternion.identity);
                 npcList.Add(navNpc);
+                physicsToggleManager.RegisterNPC(navNpc);
+
 
                 var navController = navNpc.GetComponent<NavMeshNPCController>();
                 if (navController != null)
@@ -67,6 +71,7 @@ public class NPCSpawner : MonoBehaviour
             {
                 GameObject aStarNpc = Instantiate(npcAStarPrefab, spawnPos + Vector3.right * 1f, Quaternion.identity); // spostato di poco per evitare sovrapposizione
                 npcList.Add(aStarNpc);
+                physicsToggleManager.RegisterNPC(aStarNpc);
 
                 var aStarController = aStarNpc.GetComponent<AStarNPCController>();
                 if (aStarController != null)

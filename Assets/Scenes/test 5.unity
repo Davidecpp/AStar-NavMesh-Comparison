@@ -2849,6 +2849,7 @@ GameObject:
   - component: {fileID: 287940599}
   - component: {fileID: 287940600}
   - component: {fileID: 287940601}
+  - component: {fileID: 287940602}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -2942,6 +2943,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0f3a3c4f00aefa46b3a71996f741b89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &287940602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 287940595}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e08c5c98dadb2174c874dec8fe4cd996, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  collisionToggle: {fileID: 6660864477838266577}
+  avoidanceRadius: 1
+  avoidanceForce: 1
+  npcLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &293576665
 GameObject:
   m_ObjectHideFlags: 0
@@ -4440,6 +4459,7 @@ MonoBehaviour:
   npcTarget: {fileID: 1748980694}
   panelStatsTxt: {fileID: 1099703401}
   panelStats: {fileID: 120148322}
+  physicsToggleManager: {fileID: 287940602}
 --- !u!4 &506323608
 Transform:
   m_ObjectHideFlags: 0
@@ -11434,7 +11454,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: b3a57310e054de94abb34ba2cd5509d3, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -15448,7 +15468,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3632478642343306530, guid: 701931af8f258b64db3bba46c6ac6f68, type: 3}
       propertyPath: data.dataString
-      value: UEsDBBQAAAgIAAAIIexvZhFCTAIAAA4FAAALACQAZ3JhcGgwLmpzb24KACAAAAAAAAEAGAAAgD7V3rGdAQCAPtXesZ0BAIA+1d6xnQGFVMmS2jAQ/RVK50wKA1kmt8QwTA4M1JDUXHwRUhurkCWXFtbi39OSbexhDjlh3nvd/XqxL0QoWwFz2syN4AvNgfwYkPBMPg068hmOdKvVWpyh1bwJ7oogolHzSp3QiCchzOoSnBHsp9rKIB4i6JXItSlnfAupts4inFNpASmjXYhWCF0G5NgEnJrfc/gdXPGJgXJg/qfyiklaVsCD206cDFs5PkWhwk4aTXDNtJTCNjaIO1WxzZRW1mMTKOCCYlvRQNAXILaFwz+jfvAyzy24xpShp6kwOJ06K/ml65GV1O5qZ3sqfajzdRIt1TkXH+iHJNK50eVzW7ZuyBWC7V7piVHreiPtw9P3vr06ULmjGwlvBagXPTfaK46kMz6EegujaS/VrbW0ALbrdLXXO9BXH9eTdOu5xuaPqRTlJiCfJzWwljqO+zHEgMHF/EbD8ShskwnRYOKvhT9027+ehngSxjqkmoIquNtob4KUzOLMQjPepdooiHDjuQJFpTutMI273+Ad1yt7xzzR8J40xRuuPf+7kAh3+uHwjlrpw21ZttCHBdhi6Z0UCjrTgXjBOaVaqfrA+jNpw9be5JT1wrZe8PenRXI64aPxJN/kw+QLS9hDzsbs8ds4GX7fJJCMchJvTyjsk8pVbbQZD25NdckV3ln7+RjMDa3isXNDD3NxLnVv5ELles0MgFrWGW7GwWARfCn5jAsc0BqcEyrum1wyIjXbAc9uibLY6ezoDM26LBmpxF67gGQkjR+NjAT4dsorA3sBh1C8TXYl139QSwMEFAAACAgAAAgh7AYNDbltAAAAeAAAAAkAJABtZXRhLmpzb24KACAAAAAAAAEAGAAAgD7V3rGdAQCAPtXesZ0BAIA+1d6xnQGrVipLLSrOzM9TslIw0TPSMzTXUVBKL0osyCgGihiCOKWZKSB2tFJaokmKkbFJWlKagaFpsmGyblqycbKlubGhgUWSYaqhUZpSLFB9SWVBql9ibipET0BiSUZaZl5KZl66nntRZoo7yGil2FoAUEsBAi0AFAAACAgAAAgh7G9mEUJMAgAADgUAAAsAJAAAAAAAAAAAAAAAAAAAAGdyYXBoMC5qc29uCgAgAAAAAAABABgAAIA+1d6xnQEAgD7V3rGdAQCAPtXesZ0BUEsBAi0AFAAACAgAAAgh7AYNDbltAAAAeAAAAAkAJAAAAAAAAAAAAAAAmQIAAG1ldGEuanNvbgoAIAAAAAAAAQAYAACAPtXesZ0BAIA+1d6xnQEAgD7V3rGdAVBLBQYAAAAAAgACALgAAABRAwAAAAA=
+      value: UEsDBBQAAAgIAAAIIeyKMzSsTQIAAA4FAAALACQAZ3JhcGgwLmpzb24KACAAAAAAAAEAGAAAgD7V3rGdAQCAPtXesZ0BAIA+1d6xnQGFVMmS2jAQ/RVK50wKA1kmt8QwTA4M1JDUXHwRUhurkCWXFtbi39OSbexhDjnZ9d7r7teLfSFC2QqY02ZuBF9oDuTHgIR38mnQkc9wpFut1uIMreZNcFcEEY2aV+qERjwJYVaX4IxgP9VWBvEQQa9Erk0541tItXUW4ZxKC0gZ7UK0QugyIMcm4NQ8z+E5uOIbA+XA/E/lFZO0rIAHt514NGzl+BaFCjtpNME101IK29gg7lTFNlNaWY9NoIALim1FA0FfgNgWLuTrBy/z3IJrTBl6mgqD06mzkl+6HllJ7a52tqfShzpfJ9FSnXPxgX5IIp0bXT63ZZPYkCsE273SE6PW9Ubah6fvfXt1oHJHNxLeClAvem60VxxJZ3wI9RZG016qW2tpAWzX6Wqvd6CvPq4n6dZzjc0fUynKTUA+T2pgLXUc92OIAYOL+Y2G41HYJhOiwcRfC3/otn89DfEkjHVINQVVcLfR3gQpmcWZhWa8S7VREOHGcwWKSndaYRp3v8E7rlf2jnmi4Ttpijdce/53IRHu9MPhHbXSh9uybKEPC7DF0jspFHSmA/GCc0q1UvWB9WfShq29ySnrhW294O9Pi+R0wkfjSb7Jh8kXlrCHnI3Z47dxMvy+SSAZ5STenlDYJ5Wr2mgzHtya6pIrvLP29zGYG1rFY+eGHubiXOreyIXK9ZoZALWsM9yMg8Ei+FHyGRc4oDU4J1TcN7lkRGq2A57dEmWx09nRGZp1WTJSib12AclIGn8aGQnw7ZRXBvYCDqF4m+xKrv8AUEsDBBQAAAgIAAAIIewGDQ25bQAAAHgAAAAJACQAbWV0YS5qc29uCgAgAAAAAAABABgAAIA+1d6xnQEAgD7V3rGdAQCAPtXesZ0Bq1YqSy0qzszPU7JSMNEz0jM011FQSi9KLMgoBooYgjilmSkgdrRSWqJJipGxSVpSmoGhabJhsm5asnGypbmxoYFFkmGqoVGaUixQfUllQapfYm4qRE9AYklGWmZeSmZeup57UWaKO8hopdhaAFBLAQItABQAAAgIAAAIIeyKMzSsTQIAAA4FAAALACQAAAAAAAAAAAAAAAAAAABncmFwaDAuanNvbgoAIAAAAAAAAQAYAACAPtXesZ0BAIA+1d6xnQEAgD7V3rGdAVBLAQItABQAAAgIAAAIIewGDQ25bQAAAHgAAAAJACQAAAAAAAAAAAAAAJoCAABtZXRhLmpzb24KACAAAAAAAAEAGAAAgD7V3rGdAQCAPtXesZ0BAIA+1d6xnQFQSwUGAAAAAAIAAgC4AAAAUgMAAAAA
       objectReference: {fileID: 0}
     - target: {fileID: 7386074003386266499, guid: 701931af8f258b64db3bba46c6ac6f68, type: 3}
       propertyPath: m_LocalPosition.x
@@ -15637,6 +15657,34 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 412614205813228479, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
+      propertyPath: onValueChanged.m_PersistentCalls.m_Calls.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 412614205813228479, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
+      propertyPath: onValueChanged.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412614205813228479, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
+      propertyPath: onValueChanged.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 287940602}
+    - target: {fileID: 412614205813228479, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
+      propertyPath: onValueChanged.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 412614205813228479, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
+      propertyPath: onValueChanged.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: OnToggleChanged
+      objectReference: {fileID: 0}
+    - target: {fileID: 412614205813228479, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
+      propertyPath: onValueChanged.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: NPCPhysicsToggleManager, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 412614205813228479, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
+      propertyPath: onValueChanged.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
+      objectReference: {fileID: 0}
     - target: {fileID: 746603240868486180, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
@@ -15906,6 +15954,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
+--- !u!114 &6660864477838266577 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 412614205813228479, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
+  m_PrefabInstance: {fileID: 6660864477838266576}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9085046f02f69544eb97fd06b6048fe2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -75,6 +75,7 @@
     <Compile Include="Assets\Scripts\AStarTimer.cs" />
     <Compile Include="Assets\Scripts\AStarNPCController.cs" />
     <Compile Include="Assets\Scripts\SceneChanger.cs" />
+    <Compile Include="Assets\Scripts\NPCPhysicsToggleManager.cs" />
     <Compile Include="Assets\Scripts\NPCMovementTracker.cs" />
     <Compile Include="Assets\Scripts\PerformanceOverlay.cs" />
     <Compile Include="Assets\Scripts\MemoryUsage.cs" />
@@ -84,6 +85,8 @@
     <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-05-27_15-21-16.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile-2-Pass.shader" />
+    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-05-29_11-37-56.txt" />
+    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-05-29_11-39-06.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap.shader" />
     <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-05-28_15-36-49.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Mobile.cginc" />
