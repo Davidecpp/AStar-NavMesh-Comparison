@@ -16,11 +16,21 @@ public class CameraZoom : MonoBehaviour
     [SerializeField] private bool zoomToMouse = true;
     [SerializeField] private float zoomToMouseSensitivity = 1f;
 
+    [Header("Middle Mouse Drag")]
+    [SerializeField] private bool enableMiddleMouseDrag = true;
+    [SerializeField] private float dragSensitivity = 2f;
+    [SerializeField] private bool invertDragX = false;
+    [SerializeField] private bool invertDragY = false;
+
     private Camera cam;
     private float targetZoom;
     private float zoomVelocity = 0f;
     private Vector3 targetPosition;
     private Vector3 positionVelocity = Vector3.zero;
+
+    // Variabili per il middle mouse drag
+    private bool isMiddleMousePressed = false;
+    private Vector2 lastMousePosition;
 
     void Start()
     {
@@ -36,6 +46,7 @@ public class CameraZoom : MonoBehaviour
     void Update()
     {
         HandleZoomInput();
+        HandleMiddleMouseDrag();
 
         if (useSmoothZoom)
         {
@@ -51,7 +62,6 @@ public class CameraZoom : MonoBehaviour
 
     void HandleZoomInput()
     {
-        // Ottieni l'input della rotellina del mouse usando il nuovo Input System
         Vector2 scrollInput = Mouse.current.scroll.ReadValue();
 
         if (scrollInput.y != 0f)
@@ -81,53 +91,112 @@ public class CameraZoom : MonoBehaviour
         }
     }
 
+    void HandleMiddleMouseDrag()
+    {
+        if (!enableMiddleMouseDrag) return;
+
+        // Controlla se il middle mouse button è premuto
+        if (Mouse.current.middleButton.wasPressedThisFrame)
+        {
+            isMiddleMousePressed = true;
+            lastMousePosition = Mouse.current.position.ReadValue();
+        }
+        else if (Mouse.current.middleButton.wasReleasedThisFrame)
+        {
+            isMiddleMousePressed = false;
+        }
+
+        // Se il middle mouse è premuto, calcola il movimento
+        if (isMiddleMousePressed)
+        {
+            Vector2 currentMousePosition = Mouse.current.position.ReadValue();
+            Vector2 mouseDelta = currentMousePosition - lastMousePosition;
+
+            // Converti il movimento del mouse in movimento del mondo
+            Vector3 worldDelta = ScreenToWorldDelta(mouseDelta);
+
+            // Applica l'inversione se necessario
+            if (invertDragX) worldDelta.x = -worldDelta.x;
+            if (invertDragY) worldDelta.z = -worldDelta.z;
+
+            targetPosition -= worldDelta * dragSensitivity;
+            lastMousePosition = currentMousePosition;
+        }
+    }
+
+    // Converte il delta del mouse in coordinate del mondo
+    Vector3 ScreenToWorldDelta(Vector2 screenDelta)
+    {
+        // Calcola il fattore di scala basato sulla distanza della camera e FOV
+        float distance = Mathf.Abs(transform.position.y);
+        float frustumHeight = 2.0f * distance * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
+        float frustumWidth = frustumHeight * cam.aspect;
+
+        Vector2 normalizedDelta = new Vector2(
+            screenDelta.x / Screen.width,
+            screenDelta.y / Screen.height
+        );
+
+        // Converti in coordinate del mondo
+        Vector3 worldDelta = new Vector3(
+            normalizedDelta.x * frustumWidth,
+            0f,
+            normalizedDelta.y * frustumHeight
+        );
+
+        return worldDelta;
+    }
+
     // Calcola la posizione del mouse nel mondo
     Vector3 GetMouseWorldPosition(Ray mouseRay)
     {
         float projectionDistance = 10f;
-
         return mouseRay.origin + mouseRay.direction * projectionDistance;
     }
 
     void ApplySmoothZoom()
     {
-        // Applica lo zoom con interpolazione smooth
         cam.fieldOfView = Mathf.SmoothDamp(cam.fieldOfView, targetZoom, ref zoomVelocity, smoothTime);
     }
 
     void ApplyDirectZoom()
     {
-        // Applica lo zoom direttamente
         cam.fieldOfView = targetZoom;
     }
 
     void ApplySmoothPosition()
     {
-        // Applica il movimento della camera con interpolazione smooth
         transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref positionVelocity, smoothTime);
     }
 
     void ApplyDirectPosition()
     {
-        // Applica il movimento della camera direttamente
         transform.position = targetPosition;
     }
 
-    // Metodo pubblico per impostare lo zoom da script
     public void SetZoom(float newZoom)
     {
         targetZoom = Mathf.Clamp(newZoom, minZoom, maxZoom);
     }
 
-    // Metodo pubblico per ottenere lo zoom corrente
     public float GetCurrentZoom()
     {
         return cam.fieldOfView;
     }
 
-    // Metodo per impostare la posizione target
     public void SetTargetPosition(Vector3 newPosition)
     {
         targetPosition = newPosition;
+    }
+
+    // Metodi pubblici per controllare il middle mouse drag
+    public void SetMiddleMouseDragEnabled(bool enabled)
+    {
+        enableMiddleMouseDrag = enabled;
+    }
+
+    public void SetDragSensitivity(float sensitivity)
+    {
+        dragSensitivity = sensitivity;
     }
 }

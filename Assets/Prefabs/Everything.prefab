@@ -6088,13 +6088,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1198179a3eb36048a4a03e09ebc8748, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  zoomSpeed: 10
+  zoomSpeed: 5
   minZoom: 2
   maxZoom: 100
   useSmoothZoom: 1
   smoothTime: 0.1
   zoomToMouse: 1
   zoomToMouseSensitivity: 10
+  enableMiddleMouseDrag: 1
+  dragSensitivity: 1.5
+  invertDragX: 0
+  invertDragY: 0
 --- !u!1 &3152757877537087313
 GameObject:
   m_ObjectHideFlags: 0
