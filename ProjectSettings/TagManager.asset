@@ -5,6 +5,8 @@ TagManager:
   serializedVersion: 3
   tags:
   - CalcTimeText
+  - SpawnPoint
+  - Destination
   layers:
   - Default
   - TransparentFX

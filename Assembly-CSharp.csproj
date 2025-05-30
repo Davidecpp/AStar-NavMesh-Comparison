@@ -62,6 +62,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\HeatMap.cs" />
+    <Compile Include="Assets\Scripts\ObstacleManager.cs" />
     <Compile Include="Assets\Scripts\FPSCounter.cs" />
     <Compile Include="Assets\Scripts\NavMeshNPCController.cs" />
     <Compile Include="Assets\Scripts\MapGenerator.cs" />

@@ -40,14 +40,24 @@ public class WallPlacer : MonoBehaviour
             Debug.LogWarning("NavMeshSurface non assegnato. Assicurati di assegnarlo nell'Inspector.");
         }
 
-        // Crea la preview una sola volta
-        previewWall = Instantiate(wallPrefab);
-        SetPreviewMaterial(previewWall);
-        previewWall.GetComponent<Collider>().enabled = false;
+        // Crea la preview
+        CreatePreviewWall();
     }
 
     void Update()
     {
+        // Se la preview è stata distrutta (cambio scena), ricreala
+        if (previewWall == null)
+        {
+            CreatePreviewWall();
+            if (previewWall == null) return; // Se ancora null, wallPrefab potrebbe essere null
+        }
+
+        if (wallHighlighted != null && wallHighlighted.Equals(null))
+        {
+            wallHighlighted = null; // È stato distrutto dal sistema
+        }
+
         // Controllo per evitare piazzamento se il pannello delle statistiche degli NPC aperto
         if (NPCSpawner.panelStatsOpen)
         {
@@ -134,6 +144,21 @@ public class WallPlacer : MonoBehaviour
             wallHighlighted = null;
             StartCoroutine(DelayedNavMeshUpdate());
             //Debug.Log($"Muro rimosso da {bounds.center} con dimensioni {bounds.size}");
+        }
+    }
+
+    // Metodo per creare la preview wall
+    void CreatePreviewWall()
+    {
+        if (wallPrefab != null)
+        {
+            previewWall = Instantiate(wallPrefab);
+            SetPreviewMaterial(previewWall);
+            previewWall.GetComponent<Collider>().enabled = false;
+        }
+        else
+        {
+            Debug.LogWarning("wallPrefab è null! Assicurati di assegnarlo nell'Inspector.");
         }
     }
 
