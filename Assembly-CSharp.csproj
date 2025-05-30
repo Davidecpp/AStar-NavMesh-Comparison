@@ -64,6 +64,7 @@
     <Compile Include="Assets\Scripts\HeatMap.cs" />
     <Compile Include="Assets\Scripts\FPSCounter.cs" />
     <Compile Include="Assets\Scripts\NavMeshNPCController.cs" />
+    <Compile Include="Assets\Scripts\MapGenerator.cs" />
     <Compile Include="Assets\Scripts\MouseZoomPerspective.cs" />
     <Compile Include="Assets\Scripts\NavMeshPathVisualizer.cs" />
     <Compile Include="Assets\Kevin Iglesias\Human Animations\Scripts\SpineProxy.cs" />
