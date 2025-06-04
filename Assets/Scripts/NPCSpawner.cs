@@ -3,226 +3,368 @@ using TMPro;
 using UnityEngine.InputSystem;
 using UnityEngine;
 using System.IO;
+using System.Text;
 
 public class NPCSpawner : MonoBehaviour
 {
+    [Header("Prefabs")]
     public GameObject npcNavMeshPrefab;
     public GameObject npcAStarPrefab;
-    public Transform spawnPoint;
 
+    [Header("Spawn Settings")]
+    public Transform spawnPoint;
+    public Transform npcTarget;
+
+    [Header("UI Elements")]
     public TMP_InputField numberInput;
     public TMP_Dropdown npcTypeDropdown;
-
-    public Transform npcTarget;
-    List<GameObject> npcList = new List<GameObject>();
-
-    Keyboard keyboard;
     public TMP_Text panelStatsTxt;
     public GameObject panelStats;
 
+    [Header("Managers")]
     public NPCPhysicsToggleManager physicsToggleManager;
-
-    public static bool panelStatsOpen = false;
     public PathDataGraph graficoNavMesh;
     public PathDataGraph graficoAStar;
 
+    // Cache per performance
+    private List<GameObject> npcList = new List<GameObject>();
+    private List<NavMeshNPCController> navMeshControllers = new List<NavMeshNPCController>();
+    private List<AStarNPCController> aStarControllers = new List<AStarNPCController>();
+
+    private Keyboard keyboard;
+    private StringBuilder stringBuilder = new StringBuilder(1024); // Pre-allocato per evitare allocazioni
+
+    // Cache per statistiche (evita allocazioni ripetute)
+    private readonly List<string> tempNavMeshStats = new List<string>();
+    private readonly List<string> tempAStarStats = new List<string>();
+
+    // Variabili per statistiche (riutilizzate)
+    private struct NPCStats
+    {
+        public float distanceTotal;
+        public double pathTimeTotal;
+        public double calcTimeTotal;
+        public int count;
+
+        public void Reset()
+        {
+            distanceTotal = 0f;
+            pathTimeTotal = 0;
+            calcTimeTotal = 0;
+            count = 0;
+        }
+
+        public void Add(float distance, double pathTime, double calcTime)
+        {
+            distanceTotal += distance;
+            pathTimeTotal += pathTime;
+            calcTimeTotal += calcTime;
+            count++;
+        }
+    }
+
+    private NPCStats navMeshStats;
+    private NPCStats aStarStats;
+
+    public static bool panelStatsOpen = false;
+
+    // Costanti per evitare allocazioni
+    private const string NAVMESH_HEADER = "<b>== NPC NavMesh ==</b>\n";
+    private const string ASTAR_HEADER = "<b>== NPC A* ==</b>\n";
+    private const string MEDIA_DISTANZA = "\n<b>Media distanza:</b> ";
+    private const string MEDIA_PATHTIME = "\n<b>Media PathTime:</b> ";
+    private const string MEDIA_CALCTIME = "\n<b>Media CalcTime:</b> ";
 
     void Start()
     {
-        keyboard = Keyboard.current;
+        InitializeComponents();
+        SetupDropdown();
+        SetupUI();
+    }
 
+    private void InitializeComponents()
+    {
+        keyboard = Keyboard.current;
+    }
+
+    private void SetupDropdown()
+    {
         npcTypeDropdown.options.Clear();
         npcTypeDropdown.options.Add(new TMP_Dropdown.OptionData("NavMesh"));
         npcTypeDropdown.options.Add(new TMP_Dropdown.OptionData("A*"));
         npcTypeDropdown.options.Add(new TMP_Dropdown.OptionData("Tutti"));
         npcTypeDropdown.value = 0;
+    }
 
+    private void SetupUI()
+    {
         panelStats.SetActive(false);
         panelStatsTxt.gameObject.SetActive(false);
     }
 
-    // Spawn NPCs in base al numero e tipo selezionato
     public void SpawnNPCs()
     {
-        // Controlla se il campo di input è vuoto o non valido
-        if (!int.TryParse(numberInput.text, out int count) || count <= 0)
-        {
-            Debug.LogWarning("Numero NPC non valido.");
-            return;
-        }
+        if (!ValidateInput(out int count)) return;
 
         int npcType = npcTypeDropdown.value;
 
+        // Pre-alloca spazio nelle liste se necessario
+        int expectedNewNPCs = CalculateExpectedNPCs(count, npcType);
+        EnsureListCapacity(expectedNewNPCs);
+
         for (int i = 0; i < count; i++)
         {
-            Vector3 spawnPos = spawnPoint.position + Random.insideUnitSphere * 2f;
-            spawnPos.y = spawnPoint.position.y;
+            Vector3 spawnPos = CalculateSpawnPosition();
 
-            if (npcType == 0 || npcType == 2) // NavMesh o Entrambi
-            {
-                GameObject navNpc = Instantiate(npcNavMeshPrefab, spawnPos, Quaternion.identity);
-                npcList.Add(navNpc);
-                physicsToggleManager.RegisterNPC(navNpc);
+            if (ShouldSpawnNavMesh(npcType))
+                SpawnNavMeshNPC(spawnPos);
 
+            if (ShouldSpawnAStar(npcType))
+                SpawnAStarNPC(spawnPos);
+        }
+    }
 
-                var navController = navNpc.GetComponent<NavMeshNPCController>();
-                if (navController != null)
-                    navController.target = npcTarget;
-            }
+    // Validazione dell'input per evitare allocazioni dinamiche
+    private bool ValidateInput(out int count)
+    {
+        if (!int.TryParse(numberInput.text, out count) || count <= 0)
+        {
+            Debug.LogWarning("Numero NPC non valido.");
+            return false;
+        }
+        return true;
+    }
 
-            if (npcType == 1 || npcType == 2) // A* o Entrambi
-            {
-                GameObject aStarNpc = Instantiate(npcAStarPrefab, spawnPos + Vector3.right * 1f, Quaternion.identity); // spostato di poco per evitare sovrapposizione
-                npcList.Add(aStarNpc);
-                physicsToggleManager.RegisterNPC(aStarNpc);
+    private int CalculateExpectedNPCs(int count, int npcType)
+    {
+        return npcType == 2 ? count * 2 : count;
+    }
 
-                var aStarController = aStarNpc.GetComponent<AStarNPCController>();
-                if (aStarController != null)
-                    aStarController.target = npcTarget;
-            }
+    // Assicura che le liste abbiano abbastanza capacità per evitare allocazioni dinamiche
+    private void EnsureListCapacity(int additionalCapacity)
+    {
+        int newCapacity = npcList.Count + additionalCapacity;
+        if (npcList.Capacity < newCapacity)
+        {
+            npcList.Capacity = newCapacity;
+            navMeshControllers.Capacity = Mathf.Max(navMeshControllers.Capacity, newCapacity);
+            aStarControllers.Capacity = Mathf.Max(aStarControllers.Capacity, newCapacity);
+        }
+    }
+
+    private Vector3 CalculateSpawnPosition()
+    {
+        Vector3 spawnPos = spawnPoint.position + Random.insideUnitSphere * 2f;
+        spawnPos.y = spawnPoint.position.y;
+        return spawnPos;
+    }
+
+    private bool ShouldSpawnNavMesh(int npcType) => npcType == 0 || npcType == 2;
+    private bool ShouldSpawnAStar(int npcType) => npcType == 1 || npcType == 2;
+
+    private void SpawnNavMeshNPC(Vector3 spawnPos)
+    {
+        GameObject navNpc = Instantiate(npcNavMeshPrefab, spawnPos, Quaternion.identity);
+        npcList.Add(navNpc);
+        physicsToggleManager.RegisterNPC(navNpc);
+
+        var navController = navNpc.GetComponent<NavMeshNPCController>();
+        if (navController != null)
+        {
+            navController.target = npcTarget;
+            navMeshControllers.Add(navController);
+        }
+    }
+
+    private void SpawnAStarNPC(Vector3 spawnPos)
+    {
+        Vector3 aStarSpawnPos = spawnPos + Vector3.right * 1f;
+        GameObject aStarNpc = Instantiate(npcAStarPrefab, aStarSpawnPos, Quaternion.identity);
+        npcList.Add(aStarNpc);
+        physicsToggleManager.RegisterNPC(aStarNpc);
+
+        var aStarController = aStarNpc.GetComponent<AStarNPCController>();
+        if (aStarController != null)
+        {
+            aStarController.target = npcTarget;
+            aStarControllers.Add(aStarController);
         }
     }
 
     void Update()
     {
+        HandleInput();
+        UpdateStats();
+    }
+
+    private void HandleInput()
+    {
         if (keyboard.tabKey.wasPressedThisFrame)
         {
             CloseStats();
-            CloseGraphs();
+            ToggleGraphs();
         }
-        if(keyboard.sKey.wasPressedThisFrame)
+
+        if (keyboard.sKey.wasPressedThisFrame)
         {
             SaveStatsToFile(panelStatsTxt.text);
         }
-        printList();
     }
 
-    void CloseGraphs()
+    private void ToggleGraphs()
     {
-        if (graficoNavMesh.gameObject.activeSelf)
-            graficoNavMesh.gameObject.SetActive(false);
-        else graficoNavMesh.gameObject.SetActive(true);
+        if (graficoNavMesh != null)
+            graficoNavMesh.gameObject.SetActive(!graficoNavMesh.gameObject.activeSelf);
 
-        if (graficoAStar.gameObject.activeSelf)
-            graficoAStar.gameObject.SetActive(false);
-        else graficoAStar.gameObject.SetActive(true);
+        if (graficoAStar != null)
+            graficoAStar.gameObject.SetActive(!graficoAStar.gameObject.activeSelf);
     }
 
-    // Stampa le informazioni degli NPC
-    void printList()
+    private void UpdateStats()
     {
-        string fullText = "";
+        if (!panelStatsOpen) return; // Aggiorna solo se il pannello è visibile
 
-        // Liste di output per NPC
-        List<string> navMeshStats = new List<string>();
-        List<string> aStarStats = new List<string>();
-        List<string> unknownStats = new List<string>();
+        ClearTempCollections();
+        ResetStats();
 
-        // Variabili somma per NavMesh
-        float navDistanceTotal = 0f;
-        double navPathTimeTotal = 0;
-        double navCalcTimeTotal = 0;
-        int navCount = 0;
+        ProcessNavMeshNPCs();
+        ProcessAStarNPCs();
 
-        // Variabili somma per A*
-        float aStarDistanceTotal = 0f;
-        float aStarPathTimeTotal = 0;
-        double aStarCalcTimeTotal = 0;
-        int aStarCount = 0;
+        UpdateGraphs();
+        UpdateStatsText();
+    }
 
-        foreach (GameObject npc in npcList)
+    private void ClearTempCollections()
+    {
+        tempNavMeshStats.Clear();
+        tempAStarStats.Clear();
+    }
+
+    private void ResetStats()
+    {
+        navMeshStats.Reset();
+        aStarStats.Reset();
+    }
+
+    private void ProcessNavMeshNPCs()
+    {
+        // Rimuovi controller null (NPCs distrutti)
+        for (int i = navMeshControllers.Count - 1; i >= 0; i--)
         {
-            // Controlla se l'NPC ha un controller NavMesh o A*
-            var navController = npc.GetComponent<NavMeshNPCController>();
-            if (navController != null)
+            if (navMeshControllers[i] == null)
             {
-                float dist = navController.GetDistance();
-                double pathTime = navController.GetPathTime();
-                double calcTime = navController.GetCalcTime();
-
-                // Aggiungi i dati alla lista NavMesh
-                navDistanceTotal += dist;
-                navPathTimeTotal += pathTime;
-                navCalcTimeTotal += calcTime;
-                navCount++;
-
-                navMeshStats.Add($"[NavMesh NPC] {npc.name} - Distanza: {dist:F2} m, PathTime: {pathTime:F2} s, CalcTime: {calcTime:F2} ms");
+                navMeshControllers.RemoveAt(i);
                 continue;
             }
 
-            var aStarController = npc.GetComponent<AStarNPCController>();
-            if (aStarController != null)
-            {
-                float dist = aStarController.GetDistance();
-                float pathTime = aStarController.GetPathTime();
-                double calcTime = aStarController.GetCalcTime();
+            var controller = navMeshControllers[i];
+            float dist = controller.GetDistance();
+            double pathTime = controller.GetPathTime();
+            double calcTime = controller.GetCalcTime();
 
-                // Aggiungi i dati alla lista A*
-                aStarDistanceTotal += dist;
-                aStarPathTimeTotal += pathTime;
-                aStarCalcTimeTotal += calcTime;
-                aStarCount++;
-
-                aStarStats.Add($"[A* NPC] {npc.name} - Distanza: {dist:F2} m, PathTime: {pathTime:F2} s, CalcTime: {calcTime:F2} ms");
-                continue;
-            }
-
-            unknownStats.Add($"NPC {npc.name} non ha un controller riconosciuto.");
-
-            
-
+            navMeshStats.Add(dist, pathTime, calcTime);
+            tempNavMeshStats.Add($"[NavMesh NPC] {controller.name} - Distanza: {dist:F2} m, PathTime: {pathTime:F2} s, CalcTime: {calcTime:F2} ms");
         }
-        if (navCount > 0 && graficoNavMesh != null)
+    }
+
+    private void ProcessAStarNPCs()
+    {
+        // Rimuovi controller null (NPCs distrutti)
+        for (int i = aStarControllers.Count - 1; i >= 0; i--)
+        {
+            if (aStarControllers[i] == null)
+            {
+                aStarControllers.RemoveAt(i);
+                continue;
+            }
+
+            var controller = aStarControllers[i];
+            float dist = controller.GetDistance();
+            float pathTime = controller.GetPathTime();
+            double calcTime = controller.GetCalcTime();
+
+            aStarStats.Add(dist, pathTime, calcTime);
+            tempAStarStats.Add($"[A* NPC] {controller.name} - Distanza: {dist:F2} m, PathTime: {pathTime:F2} s, CalcTime: {calcTime:F2} ms");
+        }
+    }
+
+    // Aggiorna i grafici con le statistiche calcolate
+    private void UpdateGraphs()
+    {
+        if (navMeshStats.count > 0 && graficoNavMesh != null)
         {
             graficoNavMesh.AddDataPoint(
-                (float)(navCalcTimeTotal / navCount),
-                (float)(navPathTimeTotal / navCount),
-                navDistanceTotal / navCount
+                (float)(navMeshStats.calcTimeTotal / navMeshStats.count),
+                (float)(navMeshStats.pathTimeTotal / navMeshStats.count),
+                navMeshStats.distanceTotal / navMeshStats.count
             );
         }
 
-        if (aStarCount > 0 && graficoAStar != null)
+        if (aStarStats.count > 0 && graficoAStar != null)
         {
             graficoAStar.AddDataPoint(
-                (float)(aStarCalcTimeTotal / aStarCount),
-                aStarPathTimeTotal / aStarCount,
-                aStarDistanceTotal / aStarCount
+                (float)(aStarStats.calcTimeTotal / aStarStats.count),
+                (float)(aStarStats.pathTimeTotal / aStarStats.count),
+                aStarStats.distanceTotal / aStarStats.count
             );
         }
-
-
-        // NAVMESH
-        if (navMeshStats.Count > 0)
-        {
-            fullText += "<b>== NPC NavMesh ==</b>\n";
-            fullText += string.Join("\n", navMeshStats);
-            fullText += $"\n<b>Media distanza:</b> {(navDistanceTotal / navCount):F2} m";
-            fullText += $"\n<b>Media PathTime:</b> {(navPathTimeTotal / navCount):F2} s";
-            fullText += $"\n<b>Media CalcTime:</b> {(navCalcTimeTotal / navCount):F2} ms\n\n";
-        }
-
-        // ASTAR
-        if (aStarStats.Count > 0)
-        {
-            fullText += "<b>== NPC A* ==</b>\n";
-            fullText += string.Join("\n", aStarStats);
-            fullText += $"\n<b>Media distanza:</b> {(aStarDistanceTotal / aStarCount):F2} m";
-            fullText += $"\n<b>Media PathTime:</b> {(aStarPathTimeTotal / aStarCount):F2} s";
-            fullText += $"\n<b>Media CalcTime:</b> {(aStarCalcTimeTotal / aStarCount):F2} ms\n\n";
-        }
-
-        // UNKNOWN
-        if (unknownStats.Count > 0)
-        {
-            fullText += "<b>== NPC Sconosciuti ==</b>\n";
-            fullText += string.Join("\n", unknownStats);
-        }
-
-        panelStatsTxt.text = fullText;
     }
 
+    private void UpdateStatsText()
+    {
+        stringBuilder.Clear();
 
-    // Chiude pannello delle statistiche
+        if (tempNavMeshStats.Count > 0)
+        {
+            AppendNavMeshStats();
+        }
+
+        if (tempAStarStats.Count > 0)
+        {
+            AppendAStarStats();
+        }
+
+        panelStatsTxt.text = stringBuilder.ToString();
+    }
+
+    // Appendi le statistiche NavMesh al StringBuilder
+    private void AppendNavMeshStats()
+    {
+        stringBuilder.Append(NAVMESH_HEADER);
+
+        foreach (string stat in tempNavMeshStats)
+        {
+            stringBuilder.AppendLine(stat);
+        }
+
+        float avgDistance = navMeshStats.distanceTotal / navMeshStats.count;
+        double avgPathTime = navMeshStats.pathTimeTotal / navMeshStats.count;
+        double avgCalcTime = navMeshStats.calcTimeTotal / navMeshStats.count;
+
+        stringBuilder.Append(MEDIA_DISTANZA).Append(avgDistance.ToString("F2")).Append(" m");
+        stringBuilder.Append(MEDIA_PATHTIME).Append(avgPathTime.ToString("F2")).Append(" s");
+        stringBuilder.Append(MEDIA_CALCTIME).Append(avgCalcTime.ToString("F2")).AppendLine(" ms\n");
+    }
+
+    // Appendi le statistiche A* al StringBuilder
+    private void AppendAStarStats()
+    {
+        stringBuilder.Append(ASTAR_HEADER);
+
+        foreach (string stat in tempAStarStats)
+        {
+            stringBuilder.AppendLine(stat);
+        }
+
+        float avgDistance = aStarStats.distanceTotal / aStarStats.count;
+        float avgPathTime = (float)(aStarStats.pathTimeTotal / aStarStats.count);
+        double avgCalcTime = aStarStats.calcTimeTotal / aStarStats.count;
+
+        stringBuilder.Append(MEDIA_DISTANZA).Append(avgDistance.ToString("F2")).Append(" m");
+        stringBuilder.Append(MEDIA_PATHTIME).Append(avgPathTime.ToString("F2")).Append(" s");
+        stringBuilder.Append(MEDIA_CALCTIME).Append(avgCalcTime.ToString("F2")).AppendLine(" ms\n");
+    }
+
     private void CloseStats()
     {
         panelStatsOpen = !panelStatsOpen;
@@ -230,24 +372,34 @@ public class NPCSpawner : MonoBehaviour
         panelStatsTxt.gameObject.SetActive(panelStatsOpen);
     }
 
-    // Salva le statistiche in un file di testo
-    void SaveStatsToFile(string content)
+    private void SaveStatsToFile(string content)
     {
-        string folderPath = Application.dataPath + "/NPCStatsLogs";
+        string folderPath = Path.Combine(Application.dataPath, "NPCStatsLogs");
+
         if (!Directory.Exists(folderPath))
             Directory.CreateDirectory(folderPath);
 
-        string fileName = "NPC_Stats_" + System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + ".txt";
+        string fileName = $"NPC_Stats_{System.DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt";
         string fullPath = Path.Combine(folderPath, fileName);
 
         try
         {
             File.WriteAllText(fullPath, content);
-            Debug.Log("Statistiche salvate in: " + fullPath);
+            Debug.Log($"Statistiche salvate in: {fullPath}");
         }
         catch (IOException e)
         {
-            Debug.LogError("Errore nel salvataggio file: " + e.Message);
+            Debug.LogError($"Errore nel salvataggio file: {e.Message}");
         }
+    }
+
+    // Cleanup quando l'oggetto viene distrutto
+    private void OnDestroy()
+    {
+        npcList?.Clear();
+        navMeshControllers?.Clear();
+        aStarControllers?.Clear();
+        tempNavMeshStats?.Clear();
+        tempAStarStats?.Clear();
     }
 }

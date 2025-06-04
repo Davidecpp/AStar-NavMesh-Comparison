@@ -3,7 +3,7 @@ using XCharts.Runtime;
 
 public class PathDataGraph : MonoBehaviour
 {
-    public LineChart chart;  // Assegna nel Inspector
+    public LineChart chart; 
     private int step = 0;
 
 

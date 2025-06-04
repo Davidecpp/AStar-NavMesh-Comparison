@@ -6,7 +6,7 @@ public class AStarPathVisualizer : MonoBehaviour
 {
     private LineRenderer lineRenderer;
     private Seeker seeker;
-    private ABPath currentPath;
+    private ABPath lastRenderedPath;
 
     void Start()
     {
@@ -16,19 +16,29 @@ public class AStarPathVisualizer : MonoBehaviour
 
     void Update()
     {
-        // Ottieni il path attuale dal seeker
-        var path = seeker.GetCurrentPath() as ABPath;
+        ABPath currentPath = seeker.GetCurrentPath() as ABPath;
 
-        if (path != null && path.vectorPath != null && path.vectorPath.Count > 1)
+        // Evita ricalcoli inutili se il path è lo stesso o non valido
+        if (currentPath == null || currentPath.vectorPath == null || currentPath.vectorPath.Count <= 1)
         {
-            currentPath = path;
-
-            lineRenderer.positionCount = currentPath.vectorPath.Count;
-            lineRenderer.SetPositions(currentPath.vectorPath.ToArray());
+            if (lineRenderer.positionCount != 0)
+                lineRenderer.positionCount = 0;
+            return;
         }
-        else
+
+        // Aggiorna solo se il path è cambiato
+        if (currentPath != lastRenderedPath)
         {
-            lineRenderer.positionCount = 0;
+            lastRenderedPath = currentPath;
+
+            int count = currentPath.vectorPath.Count;
+            lineRenderer.positionCount = count;
+
+            // Evita allocazione: usa array temporaneo se proprio necessario
+            for (int i = 0; i < count; i++)
+            {
+                lineRenderer.SetPosition(i, currentPath.vectorPath[i]);
+            }
         }
     }
 }
