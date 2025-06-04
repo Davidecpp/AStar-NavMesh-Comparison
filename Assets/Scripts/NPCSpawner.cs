@@ -23,6 +23,9 @@ public class NPCSpawner : MonoBehaviour
     public NPCPhysicsToggleManager physicsToggleManager;
 
     public static bool panelStatsOpen = false;
+    public PathDataGraph graficoNavMesh;
+    public PathDataGraph graficoAStar;
+
 
     void Start()
     {
@@ -85,12 +88,24 @@ public class NPCSpawner : MonoBehaviour
         if (keyboard.tabKey.wasPressedThisFrame)
         {
             CloseStats();
+            CloseGraphs();
         }
         if(keyboard.sKey.wasPressedThisFrame)
         {
             SaveStatsToFile(panelStatsTxt.text);
         }
         printList();
+    }
+
+    void CloseGraphs()
+    {
+        if (graficoNavMesh.gameObject.activeSelf)
+            graficoNavMesh.gameObject.SetActive(false);
+        else graficoNavMesh.gameObject.SetActive(true);
+
+        if (graficoAStar.gameObject.activeSelf)
+            graficoAStar.gameObject.SetActive(false);
+        else graficoAStar.gameObject.SetActive(true);
     }
 
     // Stampa le informazioni degli NPC
@@ -153,7 +168,28 @@ public class NPCSpawner : MonoBehaviour
             }
 
             unknownStats.Add($"NPC {npc.name} non ha un controller riconosciuto.");
+
+            
+
         }
+        if (navCount > 0 && graficoNavMesh != null)
+        {
+            graficoNavMesh.AddDataPoint(
+                (float)(navCalcTimeTotal / navCount),
+                (float)(navPathTimeTotal / navCount),
+                navDistanceTotal / navCount
+            );
+        }
+
+        if (aStarCount > 0 && graficoAStar != null)
+        {
+            graficoAStar.AddDataPoint(
+                (float)(aStarCalcTimeTotal / aStarCount),
+                aStarPathTimeTotal / aStarCount,
+                aStarDistanceTotal / aStarCount
+            );
+        }
+
 
         // NAVMESH
         if (navMeshStats.Count > 0)

@@ -71,6 +71,7 @@
     <Compile Include="Assets\Kevin Iglesias\Human Animations\Scripts\SpineProxy.cs" />
     <Compile Include="Assets\Scripts\NPCSpawner.cs" />
     <Compile Include="Assets\Scripts\WallPlacer.cs" />
+    <Compile Include="Assets\Scripts\PathDataGraph.cs" />
     <Compile Include="Assets\Scripts\MovingObstacle.cs" />
     <Compile Include="Assets\Scripts\AStarPathVisualizer.cs" />
     <Compile Include="Assets\Scripts\GameManager.cs" />
@@ -102,8 +103,10 @@
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile SSD.shader" />
     <None Include="Assets\TextMesh Pro\Resources\LineBreaking Leading Characters.txt" />
+    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-04_10-32-35.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Properties.cginc" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Surface.cginc" />
+    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-04_10-32-42.txt" />
     <None Include="Assets\TextMesh Pro\Resources\LineBreaking Following Characters.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Masking.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF Overlay.shader" />
@@ -1226,9 +1229,21 @@
       <Project>{420F3FF6-F237-6E17-158E-7B678527785B}</Project>
       <Name>AstarPathfindingProject</Name>
     </ProjectReference>
+    <ProjectReference Include="XCharts.Editor.csproj">
+      <Project>{40C9E406-8062-01E8-3CAF-D89B9D351958}</Project>
+      <Name>XCharts.Editor</Name>
+    </ProjectReference>
+    <ProjectReference Include="XCharts.Runtime.csproj">
+      <Project>{3B450B8B-71FD-2B5C-D73A-1D9350FDA5BE}</Project>
+      <Name>XCharts.Runtime</Name>
+    </ProjectReference>
     <ProjectReference Include="PackageToolsEditor.csproj">
       <Project>{B69E92E9-4948-4901-B08C-4DE6BFE1539A}</Project>
       <Name>PackageToolsEditor</Name>
+    </ProjectReference>
+    <ProjectReference Include="XCharts.Examples.csproj">
+      <Project>{04CDC2C5-2770-FAB6-9353-0244B720DE4B}</Project>
+      <Name>XCharts.Examples</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
