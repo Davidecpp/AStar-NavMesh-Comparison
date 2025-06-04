@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine.InputSystem;
@@ -14,17 +15,28 @@ public class NPCSpawner : MonoBehaviour
     [Header("Spawn Settings")]
     public Transform spawnPoint;
     public Transform npcTarget;
+    
+    [Header("Performance Settings")]
+    [SerializeField] private int spawnBatchSize = 10; // NPCs per frame
+    [SerializeField] private float batchDelay = 0.016f; // ~60fps delay between batches
+    [SerializeField] private bool useObjectPooling = true;
 
     [Header("UI Elements")]
     public TMP_InputField numberInput;
     public TMP_Dropdown npcTypeDropdown;
     public TMP_Text panelStatsTxt;
     public GameObject panelStats;
+    public TMP_Text spawnProgressText; // Add this UI element
 
     [Header("Managers")]
     public NPCPhysicsToggleManager physicsToggleManager;
     public PathDataGraph graficoNavMesh;
     public PathDataGraph graficoAStar;
+
+    // Object Pooling
+    private Queue<GameObject> navMeshPool = new Queue<GameObject>();
+    private Queue<GameObject> aStarPool = new Queue<GameObject>();
+    private const int INITIAL_POOL_SIZE = 50;
 
     // Cache per performance
     private List<GameObject> npcList = new List<GameObject>();
@@ -32,13 +44,16 @@ public class NPCSpawner : MonoBehaviour
     private List<AStarNPCController> aStarControllers = new List<AStarNPCController>();
 
     private Keyboard keyboard;
-    private StringBuilder stringBuilder = new StringBuilder(1024); // Pre-allocato per evitare allocazioni
+    private StringBuilder stringBuilder = new StringBuilder(1024);
 
-    // Cache per statistiche (evita allocazioni ripetute)
+    // Cache per statistiche
     private readonly List<string> tempNavMeshStats = new List<string>();
     private readonly List<string> tempAStarStats = new List<string>();
 
-    // Variabili per statistiche (riutilizzate)
+    // Spawn progress tracking
+    private bool isSpawning = false;
+    private Coroutine currentSpawnCoroutine;
+
     private struct NPCStats
     {
         public float distanceTotal;
@@ -80,6 +95,11 @@ public class NPCSpawner : MonoBehaviour
         InitializeComponents();
         SetupDropdown();
         SetupUI();
+        
+        if (useObjectPooling)
+        {
+            InitializeObjectPools();
+        }
     }
 
     private void InitializeComponents()
@@ -100,31 +120,108 @@ public class NPCSpawner : MonoBehaviour
     {
         panelStats.SetActive(false);
         panelStatsTxt.gameObject.SetActive(false);
+        
+        if (spawnProgressText != null)
+            spawnProgressText.gameObject.SetActive(false);
+    }
+
+    private void InitializeObjectPools()
+    {
+        // Pre-populate pools
+        for (int i = 0; i < INITIAL_POOL_SIZE; i++)
+        {
+            GameObject navMeshObj = Instantiate(npcNavMeshPrefab);
+            navMeshObj.SetActive(false);
+            navMeshPool.Enqueue(navMeshObj);
+
+            GameObject aStarObj = Instantiate(npcAStarPrefab);
+            aStarObj.SetActive(false);
+            aStarPool.Enqueue(aStarObj);
+        }
     }
 
     public void SpawnNPCs()
     {
+        if (isSpawning)
+        {
+            Debug.LogWarning("Spawn già in corso. Attendere il completamento.");
+            return;
+        }
+
         if (!ValidateInput(out int count)) return;
 
-        int npcType = npcTypeDropdown.value;
-
-        // Pre-alloca spazio nelle liste se necessario
-        int expectedNewNPCs = CalculateExpectedNPCs(count, npcType);
-        EnsureListCapacity(expectedNewNPCs);
-
-        for (int i = 0; i < count; i++)
+        // Stop any existing spawn coroutine
+        if (currentSpawnCoroutine != null)
         {
-            Vector3 spawnPos = CalculateSpawnPosition();
-
-            if (ShouldSpawnNavMesh(npcType))
-                SpawnNavMeshNPC(spawnPos);
-
-            if (ShouldSpawnAStar(npcType))
-                SpawnAStarNPC(spawnPos);
+            StopCoroutine(currentSpawnCoroutine);
         }
+
+        currentSpawnCoroutine = StartCoroutine(SpawnNPCsCoroutine(count, npcTypeDropdown.value));
     }
 
-    // Validazione dell'input per evitare allocazioni dinamiche
+    private IEnumerator SpawnNPCsCoroutine(int count, int npcType)
+    {
+        isSpawning = true;
+        
+        if (spawnProgressText != null)
+            spawnProgressText.gameObject.SetActive(true);
+
+        int totalToSpawn = CalculateExpectedNPCs(count, npcType);
+        int spawned = 0;
+
+        // Pre-alloca spazio nelle liste
+        EnsureListCapacity(totalToSpawn);
+
+        // Temporarily disable physics auto-sync for better performance
+        bool originalAutoSync = Physics.autoSyncTransforms;
+        Physics.autoSyncTransforms = false;
+
+        for (int i = 0; i < count; i += spawnBatchSize)
+        {
+            int batchEnd = Mathf.Min(i + spawnBatchSize, count);
+            
+            for (int j = i; j < batchEnd; j++)
+            {
+                Vector3 spawnPos = CalculateSpawnPosition();
+
+                if (ShouldSpawnNavMesh(npcType))
+                {
+                    SpawnNavMeshNPC(spawnPos);
+                    spawned++;
+                }
+
+                if (ShouldSpawnAStar(npcType))
+                {
+                    SpawnAStarNPC(spawnPos);
+                    spawned++;
+                }
+            }
+
+            // Update progress
+            if (spawnProgressText != null)
+            {
+                float progress = (float)spawned / totalToSpawn * 100f;
+                spawnProgressText.text = $"Spawning NPCs: {progress:F1}% ({spawned}/{totalToSpawn})";
+            }
+
+            // Wait before next batch
+            yield return new WaitForSeconds(batchDelay);
+        }
+
+        // Re-enable physics auto-sync
+        Physics.autoSyncTransforms = originalAutoSync;
+        Physics.SyncTransforms(); // Manual sync after batch spawning
+
+        // Hide progress text
+        if (spawnProgressText != null)
+            spawnProgressText.gameObject.SetActive(false);
+
+        isSpawning = false;
+        currentSpawnCoroutine = null;
+        
+        Debug.Log($"Spawn completato: {spawned} NPCs creati in {count * batchDelay:F2} secondi");
+    }
+
     private bool ValidateInput(out int count)
     {
         if (!int.TryParse(numberInput.text, out count) || count <= 0)
@@ -140,7 +237,6 @@ public class NPCSpawner : MonoBehaviour
         return npcType == 2 ? count * 2 : count;
     }
 
-    // Assicura che le liste abbiano abbastanza capacità per evitare allocazioni dinamiche
     private void EnsureListCapacity(int additionalCapacity)
     {
         int newCapacity = npcList.Count + additionalCapacity;
@@ -154,8 +250,14 @@ public class NPCSpawner : MonoBehaviour
 
     private Vector3 CalculateSpawnPosition()
     {
-        Vector3 spawnPos = spawnPoint.position + Random.insideUnitSphere * 2f;
-        spawnPos.y = spawnPoint.position.y;
+        // Use a more efficient random position calculation
+        float angle = Random.Range(0f, 2f * Mathf.PI);
+        float distance = Random.Range(0.5f, 2f);
+        
+        Vector3 spawnPos = spawnPoint.position;
+        spawnPos.x += Mathf.Cos(angle) * distance;
+        spawnPos.z += Mathf.Sin(angle) * distance;
+        
         return spawnPos;
     }
 
@@ -164,7 +266,12 @@ public class NPCSpawner : MonoBehaviour
 
     private void SpawnNavMeshNPC(Vector3 spawnPos)
     {
-        GameObject navNpc = Instantiate(npcNavMeshPrefab, spawnPos, Quaternion.identity);
+        GameObject navNpc = GetOrCreateNavMeshNPC();
+        
+        navNpc.transform.position = spawnPos;
+        navNpc.transform.rotation = Quaternion.identity;
+        navNpc.SetActive(true);
+        
         npcList.Add(navNpc);
         physicsToggleManager.RegisterNPC(navNpc);
 
@@ -173,13 +280,21 @@ public class NPCSpawner : MonoBehaviour
         {
             navController.target = npcTarget;
             navMeshControllers.Add(navController);
+            
+            // Reset controller state if needed
+            navController.ResetNPC(); // Implement this method in your controller
         }
     }
 
     private void SpawnAStarNPC(Vector3 spawnPos)
     {
         Vector3 aStarSpawnPos = spawnPos + Vector3.right * 1f;
-        GameObject aStarNpc = Instantiate(npcAStarPrefab, aStarSpawnPos, Quaternion.identity);
+        GameObject aStarNpc = GetOrCreateAStarNPC();
+        
+        aStarNpc.transform.position = aStarSpawnPos;
+        aStarNpc.transform.rotation = Quaternion.identity;
+        aStarNpc.SetActive(true);
+        
         npcList.Add(aStarNpc);
         physicsToggleManager.RegisterNPC(aStarNpc);
 
@@ -188,13 +303,54 @@ public class NPCSpawner : MonoBehaviour
         {
             aStarController.target = npcTarget;
             aStarControllers.Add(aStarController);
+            
+            // Reset controller state if needed
+            aStarController.ResetNPC(); // Implement this method in your controller
         }
+    }
+
+    private GameObject GetOrCreateNavMeshNPC()
+    {
+        if (useObjectPooling && navMeshPool.Count > 0)
+        {
+            return navMeshPool.Dequeue();
+        }
+        
+        return Instantiate(npcNavMeshPrefab);
+    }
+
+    private GameObject GetOrCreateAStarNPC()
+    {
+        if (useObjectPooling && aStarPool.Count > 0)
+        {
+            return aStarPool.Dequeue();
+        }
+        
+        return Instantiate(npcAStarPrefab);
+    }
+
+    // Method to return NPCs to pool when destroyed
+    public void ReturnToPool(GameObject npc, bool isNavMesh)
+    {
+        if (!useObjectPooling) return;
+
+        npc.SetActive(false);
+        
+        if (isNavMesh)
+            navMeshPool.Enqueue(npc);
+        else
+            aStarPool.Enqueue(npc);
     }
 
     void Update()
     {
         HandleInput();
-        UpdateStats();
+        
+        // Only update stats if not spawning (to reduce overhead during spawn)
+        if (!isSpawning)
+        {
+            UpdateStats();
+        }
     }
 
     private void HandleInput()
@@ -209,6 +365,28 @@ public class NPCSpawner : MonoBehaviour
         {
             SaveStatsToFile(panelStatsTxt.text);
         }
+
+        // Add key to cancel spawning
+        if (keyboard.escapeKey.wasPressedThisFrame && isSpawning)
+        {
+            CancelSpawning();
+        }
+    }
+
+    private void CancelSpawning()
+    {
+        if (currentSpawnCoroutine != null)
+        {
+            StopCoroutine(currentSpawnCoroutine);
+            currentSpawnCoroutine = null;
+        }
+        
+        isSpawning = false;
+        
+        if (spawnProgressText != null)
+            spawnProgressText.gameObject.SetActive(false);
+            
+        Debug.Log("Spawn cancellato dall'utente");
     }
 
     private void ToggleGraphs()
@@ -222,7 +400,7 @@ public class NPCSpawner : MonoBehaviour
 
     private void UpdateStats()
     {
-        if (!panelStatsOpen) return; // Aggiorna solo se il pannello è visibile
+        if (!panelStatsOpen) return;
 
         ClearTempCollections();
         ResetStats();
@@ -248,7 +426,6 @@ public class NPCSpawner : MonoBehaviour
 
     private void ProcessNavMeshNPCs()
     {
-        // Rimuovi controller null (NPCs distrutti)
         for (int i = navMeshControllers.Count - 1; i >= 0; i--)
         {
             if (navMeshControllers[i] == null)
@@ -269,7 +446,6 @@ public class NPCSpawner : MonoBehaviour
 
     private void ProcessAStarNPCs()
     {
-        // Rimuovi controller null (NPCs distrutti)
         for (int i = aStarControllers.Count - 1; i >= 0; i--)
         {
             if (aStarControllers[i] == null)
@@ -288,7 +464,6 @@ public class NPCSpawner : MonoBehaviour
         }
     }
 
-    // Aggiorna i grafici con le statistiche calcolate
     private void UpdateGraphs()
     {
         if (navMeshStats.count > 0 && graficoNavMesh != null)
@@ -327,7 +502,6 @@ public class NPCSpawner : MonoBehaviour
         panelStatsTxt.text = stringBuilder.ToString();
     }
 
-    // Appendi le statistiche NavMesh al StringBuilder
     private void AppendNavMeshStats()
     {
         stringBuilder.Append(NAVMESH_HEADER);
@@ -346,7 +520,6 @@ public class NPCSpawner : MonoBehaviour
         stringBuilder.Append(MEDIA_CALCTIME).Append(avgCalcTime.ToString("F2")).AppendLine(" ms\n");
     }
 
-    // Appendi le statistiche A* al StringBuilder
     private void AppendAStarStats()
     {
         stringBuilder.Append(ASTAR_HEADER);
@@ -393,13 +566,21 @@ public class NPCSpawner : MonoBehaviour
         }
     }
 
-    // Cleanup quando l'oggetto viene distrutto
     private void OnDestroy()
     {
+        if (currentSpawnCoroutine != null)
+        {
+            StopCoroutine(currentSpawnCoroutine);
+        }
+
         npcList?.Clear();
         navMeshControllers?.Clear();
         aStarControllers?.Clear();
         tempNavMeshStats?.Clear();
         tempAStarStats?.Clear();
+        
+        // Clear pools
+        navMeshPool?.Clear();
+        aStarPool?.Clear();
     }
 }

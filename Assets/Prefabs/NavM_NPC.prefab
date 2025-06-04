@@ -278,7 +278,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.20754242
+        value: 0.03665924
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -370,6 +370,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e17111308e3bf334d8cb352d3121c90b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowPaths: 1
 --- !u!4 &5551495198976638234 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d9cd8eb4a074cd84ab2686c58bcf21d9, type: 3}

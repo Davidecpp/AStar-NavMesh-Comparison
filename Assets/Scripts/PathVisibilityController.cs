@@ -7,6 +7,7 @@ public class PathVisibilityController : MonoBehaviour
     public Toggle pathToggle;
     private List<PathVisualizer> visualizers = new List<PathVisualizer>();
 
+    // Singleton instance
     public static PathVisibilityController Instance { get; private set; }
 
     void Awake()
