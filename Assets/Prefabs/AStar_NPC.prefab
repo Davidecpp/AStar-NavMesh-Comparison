@@ -189,6 +189,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5531997562900606098}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5682019141357522201}
   m_SourcePrefab: {fileID: 100100000, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
 --- !u!4 &5171722602901601407 stripped
 Transform:
@@ -410,7 +413,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5516477310712063685}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e8a14b432c80f6a4e8733e578dfde9b6, type: 3}
   m_Name: 
@@ -442,7 +445,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   heatmapManager: {fileID: 0}
-  npcName: AStar
+  heatmapType: 0
+  trackingInterval: 0.1
+  minMovementThreshold: 0.1
+  showDebugInfo: 0
 --- !u!54 &2996014452364884269
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -491,3 +497,15 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.4, y: 1.5, z: 0.4}
   m_Center: {x: 0, y: 1.02, z: 0}
+--- !u!114 &5682019141357522201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5516477310712063685}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e17111308e3bf334d8cb352d3121c90b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

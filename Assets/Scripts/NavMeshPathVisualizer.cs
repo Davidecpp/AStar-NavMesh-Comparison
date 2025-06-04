@@ -1,7 +1,5 @@
-using System.Diagnostics;
 using UnityEngine;
 using UnityEngine.AI;
-using Debug = UnityEngine.Debug;
 
 [RequireComponent(typeof(LineRenderer), typeof(NavMeshAgent))]
 public class NavMeshPathLine : MonoBehaviour

@@ -38,8 +38,6 @@ public class Heatmap : MonoBehaviour
     public Button navMeshButton;
     public Button aStarButton;
 
-
-
     void Start()
     {
         heatmap = new int[width, height];

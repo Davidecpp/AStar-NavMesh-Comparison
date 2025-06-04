@@ -66,6 +66,7 @@
     <Compile Include="Assets\Scripts\FPSCounter.cs" />
     <Compile Include="Assets\Scripts\NavMeshNPCController.cs" />
     <Compile Include="Assets\Scripts\MapGenerator.cs" />
+    <Compile Include="Assets\Scripts\PathVisualizer.cs" />
     <Compile Include="Assets\Scripts\MouseZoomPerspective.cs" />
     <Compile Include="Assets\Scripts\NavMeshPathVisualizer.cs" />
     <Compile Include="Assets\Kevin Iglesias\Human Animations\Scripts\SpineProxy.cs" />
@@ -78,6 +79,7 @@
     <Compile Include="Assets\Scripts\AStarTimer.cs" />
     <Compile Include="Assets\Scripts\AStarNPCController.cs" />
     <Compile Include="Assets\Scripts\SceneChanger.cs" />
+    <Compile Include="Assets\Scripts\PathVisibilityController.cs" />
     <Compile Include="Assets\Scripts\NPCPhysicsToggleManager.cs" />
     <Compile Include="Assets\Scripts\NPCMovementTracker.cs" />
     <Compile Include="Assets\Scripts\PerformanceOverlay.cs" />

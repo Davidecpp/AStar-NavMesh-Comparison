@@ -118,8 +118,8 @@
     <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Editor\ChildComponents\TextPaddingDrawer.cs" />
     <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Editor\MainComponents\VisualMapEditor.cs" />
     <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Editor\ChildComponents\ImageStyleDrawer.cs" />
-    <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Editor\ChildComponents\LabelLineDrawer.cs" />
     <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Editor\Series\HeatmapEditor.cs" />
+    <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Editor\ChildComponents\LabelLineDrawer.cs" />
     <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Editor\ChildComponents\CommentItemDrawer.cs" />
     <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Editor\ChildComponents\BorderStyleDrawer.cs" />
     <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Editor\MainComponents\AxisEditor.cs" />

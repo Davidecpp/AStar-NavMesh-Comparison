@@ -63,8 +63,8 @@
   <ItemGroup>
     <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Examples\Example90_Candlestick.cs" />
     <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Examples\Example31_PieUpdateName.cs" />
-    <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Examples\Example00_CheatSheet.cs" />
     <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Examples\Example60_Heatmap.cs" />
+    <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Examples\Example00_CheatSheet.cs" />
     <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Examples\Example12_CustomDrawing.cs" />
     <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Examples\Example11_AddSinCurve.cs" />
     <Compile Include="Assets\XCharts-Team-XCharts-e4e1a69\Examples\Example05_DynamicChart.cs" />
