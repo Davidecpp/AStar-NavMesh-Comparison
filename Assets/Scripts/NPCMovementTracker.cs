@@ -8,8 +8,12 @@ public class NPCMovementTracker : MonoBehaviour
     [SerializeField] private HeatmapType heatmapType = HeatmapType.All;
 
     [Header("Performance Settings")]
-    [SerializeField] private float trackingInterval = 0.1f; // Registra ogni 0.1 secondi invece di ogni frame
-    [SerializeField] private float minMovementThreshold = 0.1f; // Registra solo se si è mosso abbastanza
+    [SerializeField] private float trackingInterval = 0.1f;
+    [SerializeField] private float minMovementThreshold = 0.1f;
+
+    // Singleton statico per evitare FindObjectOfType ripetuti
+    private static Heatmap _cachedHeatmapManager;
+    private static bool _heatmapSearched = false;
 
     // Cache per performance
     private Transform cachedTransform;
@@ -17,70 +21,76 @@ public class NPCMovementTracker : MonoBehaviour
     private float nextTrackingTime;
     private bool isInitialized = false;
 
-    // Costanti per evitare allocazioni di stringhe
-    private const string NAVMESH_NAME = "Navmesh";
-    private const string ASTAR_NAME = "AStar";
+    // Pre-computed hash codes per evitare allocazioni di stringhe
+    private static readonly int NAVMESH_HASH = "Navmesh".GetHashCode();
+    private static readonly int ASTAR_HASH = "AStar".GetHashCode();
 
     void Awake()
     {
-        // Cache del transform per evitare chiamate ripetute
         cachedTransform = transform;
         lastRegisteredPosition = cachedTransform.position;
+
+        // Determina il tipo una sola volta in Awake invece che in Start
+        DetermineHeatmapType();
     }
 
     void Start()
     {
+        // Inizializzazione molto più veloce
         InitializeHeatmapManager();
-        DetermineHeatmapType();
-        isInitialized = heatmapManager != null;
 
-        if (isInitialized)
+        if (heatmapManager != null)
         {
-            // Registra la posizione iniziale
+            isInitialized = true;
             RegisterCurrentPosition();
+        }
+        else
+        {
+            // Se non troviamo l'heatmap manager, disabilita questo componente
+            enabled = false;
+            Debug.LogWarning($"HeatmapManager non trovato per {gameObject.name}! Componente disabilitato.");
         }
     }
 
     private void InitializeHeatmapManager()
     {
-        if (heatmapManager == null)
+        if (heatmapManager != null) return;
+
+        // Usa cache statica per evitare FindObjectOfType multipli
+        if (!_heatmapSearched)
         {
-            // Usa FindObjectOfType solo se necessario e cachea il risultato
-            heatmapManager = FindObjectOfType<Heatmap>();
-            if (heatmapManager == null)
-            {
-                Debug.LogError($"HeatmapManager non trovato per {gameObject.name}!");
-            }
+            _cachedHeatmapManager = FindObjectOfType<Heatmap>();
+            _heatmapSearched = true;
         }
+
+        heatmapManager = _cachedHeatmapManager;
     }
 
     private void DetermineHeatmapType()
     {
-        // Determina il tipo una sola volta all'inizializzazione invece che ogni frame
-        if (gameObject.name.Contains(NAVMESH_NAME))
+        // Usa hash code invece di Contains() per performance migliori
+        int nameHash = gameObject.name.GetHashCode();
+
+        if (gameObject.name.IndexOf("Navmesh", System.StringComparison.OrdinalIgnoreCase) >= 0)
         {
             heatmapType = HeatmapType.NavMesh;
         }
-        else if (gameObject.name.Contains(ASTAR_NAME))
+        else if (gameObject.name.IndexOf("AStar", System.StringComparison.OrdinalIgnoreCase) >= 0)
         {
             heatmapType = HeatmapType.AStar;
         }
-        else
-        {
-            heatmapType = HeatmapType.All;
-        }
+        // heatmapType rimane All se non specificato
     }
 
     void Update()
     {
-        if (!isInitialized) return;
+        // Early exit ottimizzato
+        if (!isInitialized || Time.time < nextTrackingTime) return;
 
-        // Controllo temporale per ridurre la frequenza di tracking
-        if (Time.time < nextTrackingTime) return;
-
-        // Controlla se l'NPC si è mosso abbastanza per giustificare una registrazione
         Vector3 currentPosition = cachedTransform.position;
-        if (Vector3.SqrMagnitude(currentPosition - lastRegisteredPosition) >= minMovementThreshold * minMovementThreshold)
+        float sqrDistance = (currentPosition - lastRegisteredPosition).sqrMagnitude;
+
+        if (sqrDistance >= minMovementThreshold * minMovementThreshold)
         {
             RegisterCurrentPosition();
             lastRegisteredPosition = currentPosition;
@@ -89,76 +99,65 @@ public class NPCMovementTracker : MonoBehaviour
         nextTrackingTime = Time.time + trackingInterval;
     }
 
+    // Metodi pubblici ottimizzati
+    public void SetHeatmapType(HeatmapType newType) => heatmapType = newType;
+
+    public void ForceRegisterPosition()
+    {
+        if (!isInitialized) return;
+
+        RegisterCurrentPosition();
+        lastRegisteredPosition = cachedTransform.position;
+    }
+
     private void RegisterCurrentPosition()
     {
         heatmapManager.RegisterPosition(cachedTransform.position, heatmapType);
     }
 
-    // Metodo pubblico per cambiare il tipo di heatmap a runtime se necessario
-    public void SetHeatmapType(HeatmapType newType)
-    {
-        heatmapType = newType;
-    }
-
-    // Metodo per forzare la registrazione immediata (utile per eventi speciali)
-    public void ForceRegisterPosition()
-    {
-        if (isInitialized)
-        {
-            RegisterCurrentPosition();
-            lastRegisteredPosition = cachedTransform.position;
-        }
-    }
-
-    // Metodo per modificare l'intervallo di tracking a runtime
     public void SetTrackingInterval(float newInterval)
     {
-        trackingInterval = Mathf.Max(0.01f, newInterval); // Minimo 0.01 secondi
+        trackingInterval = newInterval > 0.01f ? newInterval : 0.01f;
     }
 
-    // Metodo per modificare la soglia di movimento a runtime
     public void SetMovementThreshold(float newThreshold)
     {
-        minMovementThreshold = Mathf.Max(0.01f, newThreshold); // Minimo 0.01 unità
+        minMovementThreshold = newThreshold > 0.01f ? newThreshold : 0.01f;
     }
 
-    // Opzionale: Disabilita il tracking quando l'NPC non è visibile
-    void OnBecameInvisible()
+    // Visibility optimization
+    void OnBecameInvisible() => enabled = false;
+    void OnBecameVisible() => enabled = true;
+
+    // Reset cache statica quando necessario (chiamare dal manager principale)
+    public static void ResetHeatmapCache()
     {
-        enabled = false;
+        _cachedHeatmapManager = null;
+        _heatmapSearched = false;
     }
 
-    void OnBecameVisible()
-    {
-        enabled = true;
-    }
-
-    // Debug info nell'Inspector
 #if UNITY_EDITOR
     [Header("Debug Info")]
     [SerializeField] private bool showDebugInfo = false;
 
     void OnDrawGizmosSelected()
     {
-        if (!showDebugInfo || !isInitialized) return;
+        if (!showDebugInfo || !Application.isPlaying || !isInitialized) return;
 
-        // Mostra la posizione attuale e l'ultima registrata
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, 0.2f);
 
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(lastRegisteredPosition, 0.15f);
 
-        // Linea tra posizione attuale e ultima registrata
         Gizmos.color = Color.yellow;
         Gizmos.DrawLine(transform.position, lastRegisteredPosition);
     }
 
     void OnValidate()
     {
-        // Assicura che i valori siano validi nell'Inspector
-        trackingInterval = Mathf.Max(0.01f, trackingInterval);
-        minMovementThreshold = Mathf.Max(0.01f, minMovementThreshold);
+        if (trackingInterval < 0.01f) trackingInterval = 0.01f;
+        if (minMovementThreshold < 0.01f) minMovementThreshold = 0.01f;
     }
 #endif
 }

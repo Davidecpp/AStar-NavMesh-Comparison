@@ -9,9 +9,10 @@ public class AStarNPCController : MonoBehaviour
     public Transform target;
 
     [Header("Performance Settings")]
-    [SerializeField] private int pathRecalculateFrameInterval = 60; // Reduced from 30
-    [SerializeField] private float movementThreshold = 0.1f; // Increased from 0.05f
+    [SerializeField] private int pathRecalculateFrameInterval = 60;
+    [SerializeField] private float movementThreshold = 0.1f;
     [SerializeField] private bool enableDistanceCalculation = true;
+    [SerializeField] private float updateFrequency = 0.1f; // Update solo ogni 100ms
 
     // Cached components
     private Seeker seeker;
@@ -29,15 +30,24 @@ public class AStarNPCController : MonoBehaviour
     private Stopwatch stopwatch;
     private int frameCounter = 0;
     private bool hasValidPath = false;
+    private float lastUpdateTime = 0f;
+    private float randomOffset = 0f; // Per distribuire gli update
 
     // Object pooling support
     private bool isPooled = false;
     private NPCSpawner spawner;
 
+    // Cache per evitare allocazioni
+    private Vector3 cachedVelocity;
+    private float cachedSpeed;
+
     void Awake()
     {
         CacheComponents();
         InitializeStopwatch();
+
+        // Distribuisci gli update per evitare picchi di performance
+        randomOffset = Random.Range(0f, updateFrequency);
     }
 
     private void CacheComponents()
@@ -56,6 +66,7 @@ public class AStarNPCController : MonoBehaviour
     {
         stopwatch = new Stopwatch();
         lastPosition = transform.position;
+        lastUpdateTime = Time.time + randomOffset;
     }
 
     void Start()
@@ -83,13 +94,17 @@ public class AStarNPCController : MonoBehaviour
     {
         if (!isInitialized || target == null) return;
 
+        // Update solo a intervalli regolari invece che ogni frame
+        if (Time.time - lastUpdateTime < updateFrequency) return;
+
+        lastUpdateTime = Time.time;
         frameCounter++;
 
         // Update movement state and animation
         UpdateMovementState();
 
         // Recalculate path periodically (less frequently)
-        if (isMoving && frameCounter % pathRecalculateFrameInterval == 0)
+        if (isMoving && frameCounter % (pathRecalculateFrameInterval / 10) == 0) // Ridotto intervallo
         {
             CalculatePathToTarget();
         }
@@ -103,14 +118,17 @@ public class AStarNPCController : MonoBehaviour
 
     private void UpdateMovementState()
     {
-        float speed = aiPath.velocity.magnitude;
-        bool wasMoving = isMoving;
-        isMoving = speed > movementThreshold;
+        // Cache velocity per evitare accessi multipli
+        cachedVelocity = aiPath.velocity;
+        cachedSpeed = cachedVelocity.magnitude;
 
-        // Update animator only when speed changes significantly
-        if (animator != null)
+        bool wasMoving = isMoving;
+        isMoving = cachedSpeed > movementThreshold;
+
+        // Update animator solo quando speed cambia significativamente
+        if (animator != null && Mathf.Abs(animator.GetFloat("Speed") - cachedSpeed) > 0.1f)
         {
-            animator.SetFloat("Speed", speed);
+            animator.SetFloat("Speed", cachedSpeed);
         }
 
         // Reset frame counter when movement state changes
@@ -186,6 +204,7 @@ public class AStarNPCController : MonoBehaviour
         frameCounter = 0;
         hasValidPath = false;
         isInitialized = false;
+        lastUpdateTime = Time.time + randomOffset;
 
         // Reset pathfinding
         if (aiPath != null)

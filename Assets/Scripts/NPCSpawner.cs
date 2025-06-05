@@ -15,10 +15,10 @@ public class NPCSpawner : MonoBehaviour
     [Header("Spawn Settings")]
     public Transform spawnPoint;
     public Transform npcTarget;
-    
+
     [Header("Performance Settings")]
-    [SerializeField] private int spawnBatchSize = 10; // NPCs per frame
-    [SerializeField] private float batchDelay = 0.016f; // ~60fps delay between batches
+    [SerializeField] private int spawnBatchSize = 10;
+    [SerializeField] private float batchDelay = 0.016f;
     [SerializeField] private bool useObjectPooling = true;
 
     [Header("UI Elements")]
@@ -33,26 +33,42 @@ public class NPCSpawner : MonoBehaviour
     public PathDataGraph graficoNavMesh;
     public PathDataGraph graficoAStar;
 
-    // Object Pooling
+    // Object Pooling - Pre-allocate larger pools
     private Queue<GameObject> navMeshPool = new Queue<GameObject>();
     private Queue<GameObject> aStarPool = new Queue<GameObject>();
-    private const int INITIAL_POOL_SIZE = 50;
+    private const int INITIAL_POOL_SIZE = 100; // Increased from 50
 
-    // Cache for performance
-    private List<GameObject> npcList = new List<GameObject>();
-    private List<NavMeshNPCController> navMeshControllers = new List<NavMeshNPCController>();
-    private List<AStarNPCController> aStarControllers = new List<AStarNPCController>();
+    // Cache for performance - Pre-allocate larger capacity
+    private List<GameObject> npcList = new List<GameObject>(200);
+    private List<NavMeshNPCController> navMeshControllers = new List<NavMeshNPCController>(100);
+    private List<AStarNPCController> aStarControllers = new List<AStarNPCController>(100);
 
     private Keyboard keyboard;
-    private StringBuilder stringBuilder = new StringBuilder(1024);
+    private StringBuilder stringBuilder = new StringBuilder(2048); // Increased capacity
 
-    // Cache per statistiche
-    private readonly List<string> tempNavMeshStats = new List<string>();
-    private readonly List<string> tempAStarStats = new List<string>();
+    // Cache per statistiche - Pre-allocate
+    private readonly List<string> tempNavMeshStats = new List<string>(100);
+    private readonly List<string> tempAStarStats = new List<string>(100);
 
     // Spawn progress tracking
     private bool isSpawning = false;
     private Coroutine currentSpawnCoroutine;
+
+    // Cached spawn data to avoid recalculations
+    private struct SpawnData
+    {
+        public int totalToSpawn;
+        public int navMeshCount;
+        public int aStarCount;
+        public bool spawnNavMesh;
+        public bool spawnAStar;
+    }
+
+    private SpawnData cachedSpawnData;
+
+    // Pre-allocated arrays for batch spawning
+    private Vector3[] spawnPositions = new Vector3[50]; // Max batch size buffer
+    private readonly System.Random random = new System.Random();
 
     private struct NPCStats
     {
@@ -69,7 +85,7 @@ public class NPCSpawner : MonoBehaviour
             count = 0;
         }
 
-        public void Add(float distance, double pathTime, double calcTime)
+        public void AddUnchecked(float distance, double pathTime, double calcTime)
         {
             distanceTotal += distance;
             pathTimeTotal += pathTime;
@@ -83,22 +99,32 @@ public class NPCSpawner : MonoBehaviour
 
     public static bool panelStatsOpen = false;
 
-    // Costanti per evitare allocazioni
+    // Costanti per evitare allocazioni - più complete
     private const string NAVMESH_HEADER = "<b>== NPC NavMesh ==</b>\n";
     private const string ASTAR_HEADER = "<b>== NPC A* ==</b>\n";
     private const string MEDIA_DISTANZA = "\n<b>Media distanza:</b> ";
     private const string MEDIA_PATHTIME = "\n<b>Media PathTime:</b> ";
     private const string MEDIA_CALCTIME = "\n<b>Media CalcTime:</b> ";
+    private const string UNIT_M = " m";
+    private const string UNIT_S = " s";
+    private const string UNIT_MS = " ms\n\n";
+
+    // Cached WaitForSeconds objects
+    private WaitForSeconds batchWait;
+    private readonly WaitForEndOfFrame waitForEndOfFrame = new WaitForEndOfFrame();
 
     void Start()
     {
         InitializeComponents();
         SetupDropdown();
         SetupUI();
-        
+
+        // Pre-create WaitForSeconds to avoid allocations
+        batchWait = new WaitForSeconds(batchDelay);
+
         if (useObjectPooling)
         {
-            InitializeObjectPools();
+            StartCoroutine(InitializeObjectPoolsAsync());
         }
     }
 
@@ -109,10 +135,11 @@ public class NPCSpawner : MonoBehaviour
 
     private void SetupDropdown()
     {
-        npcTypeDropdown.options.Clear();
-        npcTypeDropdown.options.Add(new TMP_Dropdown.OptionData("NavMesh"));
-        npcTypeDropdown.options.Add(new TMP_Dropdown.OptionData("A*"));
-        npcTypeDropdown.options.Add(new TMP_Dropdown.OptionData("Tutti"));
+        var options = npcTypeDropdown.options;
+        options.Clear();
+        options.Add(new TMP_Dropdown.OptionData("NavMesh"));
+        options.Add(new TMP_Dropdown.OptionData("A*"));
+        options.Add(new TMP_Dropdown.OptionData("Tutti"));
         npcTypeDropdown.value = 0;
     }
 
@@ -120,23 +147,34 @@ public class NPCSpawner : MonoBehaviour
     {
         panelStats.SetActive(false);
         panelStatsTxt.gameObject.SetActive(false);
-        
+
         if (spawnProgressText != null)
             spawnProgressText.gameObject.SetActive(false);
     }
 
-    private void InitializeObjectPools()
+    private IEnumerator InitializeObjectPoolsAsync()
     {
-        // Pre-populate pools
-        for (int i = 0; i < INITIAL_POOL_SIZE; i++)
-        {
-            GameObject navMeshObj = Instantiate(npcNavMeshPrefab);
-            navMeshObj.SetActive(false);
-            navMeshPool.Enqueue(navMeshObj);
+        // Initialize pools across multiple frames to reduce frame drops
+        const int itemsPerFrame = 10;
+        int itemsCreated = 0;
 
-            GameObject aStarObj = Instantiate(npcAStarPrefab);
-            aStarObj.SetActive(false);
-            aStarPool.Enqueue(aStarObj);
+        while (itemsCreated < INITIAL_POOL_SIZE)
+        {
+            int itemsThisFrame = Mathf.Min(itemsPerFrame, INITIAL_POOL_SIZE - itemsCreated);
+
+            for (int i = 0; i < itemsThisFrame; i++)
+            {
+                GameObject navMeshObj = Instantiate(npcNavMeshPrefab);
+                navMeshObj.SetActive(false);
+                navMeshPool.Enqueue(navMeshObj);
+
+                GameObject aStarObj = Instantiate(npcAStarPrefab);
+                aStarObj.SetActive(false);
+                aStarPool.Enqueue(aStarObj);
+            }
+
+            itemsCreated += itemsThisFrame;
+            yield return waitForEndOfFrame;
         }
     }
 
@@ -156,85 +194,119 @@ public class NPCSpawner : MonoBehaviour
             StopCoroutine(currentSpawnCoroutine);
         }
 
-        currentSpawnCoroutine = StartCoroutine(SpawnNPCsCoroutine(count, npcTypeDropdown.value));
+        // Pre-calculate spawn data once
+        PrepareSpawnData(count, npcTypeDropdown.value);
+
+        currentSpawnCoroutine = StartCoroutine(SpawnNPCsCoroutineOptimized(count));
     }
 
-    private IEnumerator SpawnNPCsCoroutine(int count, int npcType)
+    private void PrepareSpawnData(int count, int npcType)
+    {
+        cachedSpawnData.spawnNavMesh = npcType == 0 || npcType == 2;
+        cachedSpawnData.spawnAStar = npcType == 1 || npcType == 2;
+
+        cachedSpawnData.navMeshCount = cachedSpawnData.spawnNavMesh ? count : 0;
+        cachedSpawnData.aStarCount = cachedSpawnData.spawnAStar ? count : 0;
+        cachedSpawnData.totalToSpawn = cachedSpawnData.navMeshCount + cachedSpawnData.aStarCount;
+
+        // Pre-allocate list capacity
+        EnsureListCapacity(cachedSpawnData.totalToSpawn);
+    }
+
+    private IEnumerator SpawnNPCsCoroutineOptimized(int count)
     {
         isSpawning = true;
-        
+
         if (spawnProgressText != null)
             spawnProgressText.gameObject.SetActive(true);
 
-        int totalToSpawn = CalculateExpectedNPCs(count, npcType);
         int spawned = 0;
-
-        // Pre-alloca spazio nelle liste
-        EnsureListCapacity(totalToSpawn);
+        Vector3 spawnBasePos = spawnPoint.position;
 
         // Temporarily disable physics auto-sync for better performance
         bool originalAutoSync = Physics.autoSyncTransforms;
         Physics.autoSyncTransforms = false;
 
-        for (int i = 0; i < count; i += spawnBatchSize)
+        try
         {
-            int batchEnd = Mathf.Min(i + spawnBatchSize, count);
-            
-            for (int j = i; j < batchEnd; j++)
+            for (int i = 0; i < count; i += spawnBatchSize)
             {
-                Vector3 spawnPos = CalculateSpawnPosition();
+                int batchEnd = Mathf.Min(i + spawnBatchSize, count);
+                int batchSize = batchEnd - i;
 
-                if (ShouldSpawnNavMesh(npcType))
+                // Pre-calculate all spawn positions for this batch
+                PreCalculateSpawnPositions(batchSize, spawnBasePos);
+
+                // Spawn batch without individual position calculations
+                for (int j = 0; j < batchSize; j++)
                 {
-                    SpawnNavMeshNPC(spawnPos);
-                    spawned++;
+                    Vector3 spawnPos = spawnPositions[j];
+
+                    if (cachedSpawnData.spawnNavMesh)
+                    {
+                        SpawnNavMeshNPCOptimized(spawnPos);
+                        spawned++;
+                    }
+
+                    if (cachedSpawnData.spawnAStar)
+                    {
+                        SpawnAStarNPCOptimized(spawnPos);
+                        spawned++;
+                    }
                 }
 
-                if (ShouldSpawnAStar(npcType))
+                // Update progress less frequently
+                if (spawnProgressText != null && (spawned % 20 == 0 || spawned == cachedSpawnData.totalToSpawn))
                 {
-                    SpawnAStarNPC(spawnPos);
-                    spawned++;
+                    UpdateProgressText(spawned);
                 }
+
+                // Wait before next batch
+                yield return batchWait;
             }
+        }
+        finally
+        {
+            // Re-enable physics auto-sync
+            Physics.autoSyncTransforms = originalAutoSync;
+            Physics.SyncTransforms();
 
-            // Update progress
+            // Hide progress text
             if (spawnProgressText != null)
-            {
-                float progress = (float)spawned / totalToSpawn * 100f;
-                spawnProgressText.text = $"Spawning NPCs: {progress:F1}% ({spawned}/{totalToSpawn})";
-            }
+                spawnProgressText.gameObject.SetActive(false);
 
-            // Wait before next batch
-            yield return new WaitForSeconds(batchDelay);
+            isSpawning = false;
+            currentSpawnCoroutine = null;
         }
 
-        // Re-enable physics auto-sync
-        Physics.autoSyncTransforms = originalAutoSync;
-        Physics.SyncTransforms(); // Manual sync after batch spawning
+        Debug.Log($"Spawn completato: {spawned} NPCs creati");
+    }
 
-        // Hide progress text
-        if (spawnProgressText != null)
-            spawnProgressText.gameObject.SetActive(false);
+    private void PreCalculateSpawnPositions(int batchSize, Vector3 basePos)
+    {
+        for (int i = 0; i < batchSize; i++)
+        {
+            // Use System.Random for better performance than UnityEngine.Random
+            float angle = (float)(random.NextDouble() * 2.0 * System.Math.PI);
+            float distance = (float)(random.NextDouble() * 1.5 + 0.5); // 0.5f to 2f range
 
-        isSpawning = false;
-        currentSpawnCoroutine = null;
-        
-        Debug.Log($"Spawn completato: {spawned} NPCs creati in {count * batchDelay:F2} secondi");
+            spawnPositions[i] = new Vector3(
+                basePos.x + Mathf.Cos(angle) * distance,
+                basePos.y,
+                basePos.z + Mathf.Sin(angle) * distance
+            );
+        }
+    }
+
+    private void UpdateProgressText(int spawned)
+    {
+        float progress = (float)spawned / cachedSpawnData.totalToSpawn * 100f;
+        spawnProgressText.text = $"Spawning NPCs: {progress:F0}% ({spawned}/{cachedSpawnData.totalToSpawn})";
     }
 
     private bool ValidateInput(out int count)
     {
-        if (!int.TryParse(numberInput.text, out count) || count <= 0)
-        {
-            Debug.LogWarning("Numero NPC non valido.");
-            return false;
-        }
-        return true;
-    }
-
-    private int CalculateExpectedNPCs(int count, int npcType)
-    {
-        return npcType == 2 ? count * 2 : count;
+        return int.TryParse(numberInput.text, out count) && count > 0;
     }
 
     private void EnsureListCapacity(int additionalCapacity)
@@ -243,35 +315,24 @@ public class NPCSpawner : MonoBehaviour
         if (npcList.Capacity < newCapacity)
         {
             npcList.Capacity = newCapacity;
-            navMeshControllers.Capacity = Mathf.Max(navMeshControllers.Capacity, newCapacity);
-            aStarControllers.Capacity = Mathf.Max(aStarControllers.Capacity, newCapacity);
+
+            int navMeshCapacity = navMeshControllers.Count + cachedSpawnData.navMeshCount;
+            int aStarCapacity = aStarControllers.Count + cachedSpawnData.aStarCount;
+
+            if (navMeshControllers.Capacity < navMeshCapacity)
+                navMeshControllers.Capacity = navMeshCapacity;
+            if (aStarControllers.Capacity < aStarCapacity)
+                aStarControllers.Capacity = aStarCapacity;
         }
     }
 
-    private Vector3 CalculateSpawnPosition()
-    {
-        // Use a more efficient random position calculation
-        float angle = Random.Range(0f, 2f * Mathf.PI);
-        float distance = Random.Range(0.5f, 2f);
-        
-        Vector3 spawnPos = spawnPoint.position;
-        spawnPos.x += Mathf.Cos(angle) * distance;
-        spawnPos.z += Mathf.Sin(angle) * distance;
-        
-        return spawnPos;
-    }
-
-    private bool ShouldSpawnNavMesh(int npcType) => npcType == 0 || npcType == 2;
-    private bool ShouldSpawnAStar(int npcType) => npcType == 1 || npcType == 2;
-
-    private void SpawnNavMeshNPC(Vector3 spawnPos)
+    private void SpawnNavMeshNPCOptimized(Vector3 spawnPos)
     {
         GameObject navNpc = GetOrCreateNavMeshNPC();
-        
-        navNpc.transform.position = spawnPos;
-        navNpc.transform.rotation = Quaternion.identity;
+
+        navNpc.transform.SetPositionAndRotation(spawnPos, Quaternion.identity);
         navNpc.SetActive(true);
-        
+
         npcList.Add(navNpc);
         physicsToggleManager.RegisterNPC(navNpc);
 
@@ -280,21 +341,20 @@ public class NPCSpawner : MonoBehaviour
         {
             navController.target = npcTarget;
             navMeshControllers.Add(navController);
-            
-            // Reset controller state if needed
-            navController.ResetNPC(); // Implement this method in your controller
+            navController.ResetNPC();
         }
     }
 
-    private void SpawnAStarNPC(Vector3 spawnPos)
+    private void SpawnAStarNPCOptimized(Vector3 spawnPos)
     {
-        Vector3 aStarSpawnPos = spawnPos + Vector3.right * 1f;
+        // Inline the offset calculation
+        spawnPos.x += 1f;
+
         GameObject aStarNpc = GetOrCreateAStarNPC();
-        
-        aStarNpc.transform.position = aStarSpawnPos;
-        aStarNpc.transform.rotation = Quaternion.identity;
+
+        aStarNpc.transform.SetPositionAndRotation(spawnPos, Quaternion.identity);
         aStarNpc.SetActive(true);
-        
+
         npcList.Add(aStarNpc);
         physicsToggleManager.RegisterNPC(aStarNpc);
 
@@ -303,9 +363,7 @@ public class NPCSpawner : MonoBehaviour
         {
             aStarController.target = npcTarget;
             aStarControllers.Add(aStarController);
-            
-            // Reset controller state if needed
-            aStarController.ResetNPC(); // Implement this method in your controller
+            aStarController.ResetNPC();
         }
     }
 
@@ -315,7 +373,7 @@ public class NPCSpawner : MonoBehaviour
         {
             return navMeshPool.Dequeue();
         }
-        
+
         return Instantiate(npcNavMeshPrefab);
     }
 
@@ -325,17 +383,16 @@ public class NPCSpawner : MonoBehaviour
         {
             return aStarPool.Dequeue();
         }
-        
+
         return Instantiate(npcAStarPrefab);
     }
 
-    // Method to return NPCs to pool when destroyed
     public void ReturnToPool(GameObject npc, bool isNavMesh)
     {
         if (!useObjectPooling) return;
 
         npc.SetActive(false);
-        
+
         if (isNavMesh)
             navMeshPool.Enqueue(npc);
         else
@@ -345,9 +402,9 @@ public class NPCSpawner : MonoBehaviour
     void Update()
     {
         HandleInput();
-        
-        // Only update stats if not spawning (to reduce overhead during spawn)
-        if (!isSpawning)
+
+        // Only update stats if not spawning and panel is open
+        if (!isSpawning && panelStatsOpen)
         {
             UpdateStats();
         }
@@ -366,7 +423,6 @@ public class NPCSpawner : MonoBehaviour
             SaveStatsToFile(panelStatsTxt.text);
         }
 
-        // Add key to cancel spawning
         if (keyboard.escapeKey.wasPressedThisFrame && isSpawning)
         {
             CancelSpawning();
@@ -380,12 +436,12 @@ public class NPCSpawner : MonoBehaviour
             StopCoroutine(currentSpawnCoroutine);
             currentSpawnCoroutine = null;
         }
-        
+
         isSpawning = false;
-        
+
         if (spawnProgressText != null)
             spawnProgressText.gameObject.SetActive(false);
-            
+
         Debug.Log("Spawn cancellato dall'utente");
     }
 
@@ -400,8 +456,6 @@ public class NPCSpawner : MonoBehaviour
 
     private void UpdateStats()
     {
-        if (!panelStatsOpen) return;
-
         ClearTempCollections();
         ResetStats();
 
@@ -428,18 +482,18 @@ public class NPCSpawner : MonoBehaviour
     {
         for (int i = navMeshControllers.Count - 1; i >= 0; i--)
         {
-            if (navMeshControllers[i] == null)
+            var controller = navMeshControllers[i];
+            if (controller == null)
             {
                 navMeshControllers.RemoveAt(i);
                 continue;
             }
 
-            var controller = navMeshControllers[i];
             float dist = controller.GetDistance();
             double pathTime = controller.GetPathTime();
             double calcTime = controller.GetCalcTime();
 
-            navMeshStats.Add(dist, pathTime, calcTime);
+            navMeshStats.AddUnchecked(dist, pathTime, calcTime);
             tempNavMeshStats.Add($"[NavMesh NPC] {controller.name} - Distanza: {dist:F2} m, PathTime: {pathTime:F2} s, CalcTime: {calcTime:F2} ms");
         }
     }
@@ -448,18 +502,18 @@ public class NPCSpawner : MonoBehaviour
     {
         for (int i = aStarControllers.Count - 1; i >= 0; i--)
         {
-            if (aStarControllers[i] == null)
+            var controller = aStarControllers[i];
+            if (controller == null)
             {
                 aStarControllers.RemoveAt(i);
                 continue;
             }
 
-            var controller = aStarControllers[i];
             float dist = controller.GetDistance();
             float pathTime = controller.GetPathTime();
             double calcTime = controller.GetCalcTime();
 
-            aStarStats.Add(dist, pathTime, calcTime);
+            aStarStats.AddUnchecked(dist, pathTime, calcTime);
             tempAStarStats.Add($"[A* NPC] {controller.name} - Distanza: {dist:F2} m, PathTime: {pathTime:F2} s, CalcTime: {calcTime:F2} ms");
         }
     }
@@ -506,36 +560,36 @@ public class NPCSpawner : MonoBehaviour
     {
         stringBuilder.Append(NAVMESH_HEADER);
 
-        foreach (string stat in tempNavMeshStats)
+        for (int i = 0; i < tempNavMeshStats.Count; i++)
         {
-            stringBuilder.AppendLine(stat);
+            stringBuilder.AppendLine(tempNavMeshStats[i]);
         }
 
         float avgDistance = navMeshStats.distanceTotal / navMeshStats.count;
         double avgPathTime = navMeshStats.pathTimeTotal / navMeshStats.count;
         double avgCalcTime = navMeshStats.calcTimeTotal / navMeshStats.count;
 
-        stringBuilder.Append(MEDIA_DISTANZA).Append(avgDistance.ToString("F2")).Append(" m");
-        stringBuilder.Append(MEDIA_PATHTIME).Append(avgPathTime.ToString("F2")).Append(" s");
-        stringBuilder.Append(MEDIA_CALCTIME).Append(avgCalcTime.ToString("F2")).AppendLine(" ms\n");
+        stringBuilder.Append(MEDIA_DISTANZA).Append(avgDistance.ToString("F2")).Append(UNIT_M);
+        stringBuilder.Append(MEDIA_PATHTIME).Append(avgPathTime.ToString("F2")).Append(UNIT_S);
+        stringBuilder.Append(MEDIA_CALCTIME).Append(avgCalcTime.ToString("F2")).Append(UNIT_MS);
     }
 
     private void AppendAStarStats()
     {
         stringBuilder.Append(ASTAR_HEADER);
 
-        foreach (string stat in tempAStarStats)
+        for (int i = 0; i < tempAStarStats.Count; i++)
         {
-            stringBuilder.AppendLine(stat);
+            stringBuilder.AppendLine(tempAStarStats[i]);
         }
 
         float avgDistance = aStarStats.distanceTotal / aStarStats.count;
         float avgPathTime = (float)(aStarStats.pathTimeTotal / aStarStats.count);
         double avgCalcTime = aStarStats.calcTimeTotal / aStarStats.count;
 
-        stringBuilder.Append(MEDIA_DISTANZA).Append(avgDistance.ToString("F2")).Append(" m");
-        stringBuilder.Append(MEDIA_PATHTIME).Append(avgPathTime.ToString("F2")).Append(" s");
-        stringBuilder.Append(MEDIA_CALCTIME).Append(avgCalcTime.ToString("F2")).AppendLine(" ms\n");
+        stringBuilder.Append(MEDIA_DISTANZA).Append(avgDistance.ToString("F2")).Append(UNIT_M);
+        stringBuilder.Append(MEDIA_PATHTIME).Append(avgPathTime.ToString("F2")).Append(UNIT_S);
+        stringBuilder.Append(MEDIA_CALCTIME).Append(avgCalcTime.ToString("F2")).Append(UNIT_MS);
     }
 
     private void CloseStats()
@@ -578,8 +632,7 @@ public class NPCSpawner : MonoBehaviour
         aStarControllers?.Clear();
         tempNavMeshStats?.Clear();
         tempAStarStats?.Clear();
-        
-        // Clear pools
+
         navMeshPool?.Clear();
         aStarPool?.Clear();
     }

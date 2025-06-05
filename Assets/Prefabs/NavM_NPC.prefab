@@ -174,9 +174,6 @@ PrefabInstance:
       addedObject: {fileID: 1824150874767413329}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d9cd8eb4a074cd84ab2686c58bcf21d9, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3714349045602496679}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d9cd8eb4a074cd84ab2686c58bcf21d9, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 3518415141718555795}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d9cd8eb4a074cd84ab2686c58bcf21d9, type: 3}
       insertIndex: -1
@@ -222,6 +219,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 0}
+  movementThreshold: 0.1
+  destinationOffset: 2
+  enableDistanceCalculation: 1
+  pathCheckFrameInterval: 30
 --- !u!120 &1824150874767413329
 LineRenderer:
   serializedVersion: 2
@@ -329,18 +330,6 @@ LineRenderer:
   m_UseWorldSpace: 1
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
---- !u!114 &3714349045602496679
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5062344863408301984}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 81d8fc98702839c499ceeb81c6c8d631, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &3518415141718555795
 MonoBehaviour:
   m_ObjectHideFlags: 0

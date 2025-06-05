@@ -69,14 +69,12 @@
     <Compile Include="Assets\Scripts\MapGenerator.cs" />
     <Compile Include="Assets\Scripts\PathVisualizer.cs" />
     <Compile Include="Assets\Scripts\MouseZoomPerspective.cs" />
-    <Compile Include="Assets\Scripts\NavMeshPathVisualizer.cs" />
     <Compile Include="Assets\Scripts\NPCAvoidanceManager.cs" />
     <Compile Include="Assets\Kevin Iglesias\Human Animations\Scripts\SpineProxy.cs" />
     <Compile Include="Assets\Scripts\NPCSpawner.cs" />
     <Compile Include="Assets\Scripts\WallPlacer.cs" />
     <Compile Include="Assets\Scripts\PathDataGraph.cs" />
     <Compile Include="Assets\Scripts\MovingObstacle.cs" />
-    <Compile Include="Assets\Scripts\AStarPathVisualizer.cs" />
     <Compile Include="Assets\Scripts\GameManager.cs" />
     <Compile Include="Assets\Scripts\AStarTimer.cs" />
     <Compile Include="Assets\Scripts\AStarNPCController.cs" />
