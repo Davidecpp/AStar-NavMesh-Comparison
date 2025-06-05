@@ -1,2 +1,2 @@
-# Pathfinding A* and Navmesh comparison
+# Pathfinding: A* and Navmesh comparison
 
