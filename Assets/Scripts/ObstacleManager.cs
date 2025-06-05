@@ -117,7 +117,7 @@ public class ObstacleManager : MonoBehaviour
             // Controlla se l'oggetto ha tag SpawnPoint o Destination
             if (collider.CompareTag("SpawnPoint") || collider.CompareTag("Destination"))
             {
-                Debug.Log($"Ostacolo bloccato: sovrapposizione diretta con {collider.name} ({collider.tag})");
+                //Debug.Log($"Ostacolo bloccato: sovrapposizione diretta con {collider.name} ({collider.tag})");
                 return true;
             }
         }
