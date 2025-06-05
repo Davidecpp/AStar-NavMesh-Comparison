@@ -1178,6 +1178,7 @@ Transform:
   - {fileID: 5711360792863851609}
   - {fileID: 8357962591470954221}
   - {fileID: 5130533611432502805}
+  - {fileID: 7794219042612773489}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &575149720782923666
@@ -1981,7 +1982,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   pathToggle: {fileID: 5795365648984859460}
-  pathVisualizer: {fileID: 0}
 --- !u!1 &1020970514437190941
 GameObject:
   m_ObjectHideFlags: 0
@@ -2354,10 +2354,14 @@ MonoBehaviour:
   npcAStarPrefab: {fileID: 5516477310712063685, guid: 7c3b25be16a96374c98dac02fd359346, type: 3}
   spawnPoint: {fileID: 8178119856617660665}
   npcTarget: {fileID: 7326071420088323322}
+  spawnBatchSize: 10
+  batchDelay: 0.016
+  useObjectPooling: 1
   numberInput: {fileID: 3721306426889493599}
   npcTypeDropdown: {fileID: 3438547610205165065}
   panelStatsTxt: {fileID: 864867539715826111}
   panelStats: {fileID: 1314972384077054594}
+  spawnProgressText: {fileID: 0}
   physicsToggleManager: {fileID: 4052479579529449043}
   graficoNavMesh: {fileID: 4456613046894356320}
   graficoAStar: {fileID: 4283262237093732943}
@@ -11767,6 +11771,55 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &6847196424008508853
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7794219042612773489}
+  - component: {fileID: 3199456248145333367}
+  m_Layer: 0
+  m_Name: NPCAvoidanceManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7794219042612773489
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6847196424008508853}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 585.84125, y: 250.63683, z: -20.927422}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 823128571990152225}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3199456248145333367
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6847196424008508853}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e390e757f5fc3c4e95f6449d4537ac5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  npcProcessedPerFrame: 20
+  updateInterval: 0.1
+  useMultiThreading: 1
+  cellSize: 10
+  maxNPCsPerCell: 50
 --- !u!1 &6975200346866274166
 GameObject:
   m_ObjectHideFlags: 0
@@ -14878,6 +14931,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   collisionToggle: {fileID: 6109167392867220436}
+  defaultPhysicsSettings:
+    capsuleRadius: 0.5
+    capsuleHeight: 2
+    capsuleCenter: {x: 0, y: 1, z: 0}
+    mass: 1
+    linearDamping: 8
+    angularDamping: 10
+    collisionMode: 1
+    minMaxSpeed: 3
+    slowdownDistance: 3
+    pickNextWaypointDist: 2
+    rotationSpeed: 180
+  batchUpdates: 1
+  maxUpdatesPerFrame: 10
+  cleanupNullReferences: 1
+  enableDebugLogs: 0
 --- !u!1 &8344607617480926462
 GameObject:
   m_ObjectHideFlags: 0

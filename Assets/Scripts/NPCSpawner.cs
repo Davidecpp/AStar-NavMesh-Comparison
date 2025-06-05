@@ -26,7 +26,7 @@ public class NPCSpawner : MonoBehaviour
     public TMP_Dropdown npcTypeDropdown;
     public TMP_Text panelStatsTxt;
     public GameObject panelStats;
-    public TMP_Text spawnProgressText; // Add this UI element
+    public TMP_Text spawnProgressText;
 
     [Header("Managers")]
     public NPCPhysicsToggleManager physicsToggleManager;
@@ -38,7 +38,7 @@ public class NPCSpawner : MonoBehaviour
     private Queue<GameObject> aStarPool = new Queue<GameObject>();
     private const int INITIAL_POOL_SIZE = 50;
 
-    // Cache per performance
+    // Cache for performance
     private List<GameObject> npcList = new List<GameObject>();
     private List<NavMeshNPCController> navMeshControllers = new List<NavMeshNPCController>();
     private List<AStarNPCController> aStarControllers = new List<AStarNPCController>();

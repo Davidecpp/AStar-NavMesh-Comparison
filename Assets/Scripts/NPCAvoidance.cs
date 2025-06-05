@@ -1,8 +1,7 @@
 using Pathfinding;
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
-// Componente ottimizzato per evitamento NPC senza RVO
 public class NPCAvoidance : MonoBehaviour
 {
     [Header("Avoidance Settings")]
@@ -15,34 +14,26 @@ public class NPCAvoidance : MonoBehaviour
     [SerializeField] private float destinationRadius = 1f;
     [SerializeField] private bool disableCollisionAtDestination = true;
 
-    [Header("Performance Settings")]
-    [SerializeField] private float updateInterval = 0.1f; // Intervallo di aggiornamento
-    [SerializeField] private int maxNeighbors = 10; // Limite massimo di vicini da considerare
-
     // Componenti cached
     private AIPath aiPath;
     private Rigidbody rb;
     private Collider col;
 
-    // Stato
+    // Stato pubblico per il manager
+    public Vector3 CachedPosition { get; private set; }
+    public Vector3 CachedDestination { get; private set; }
+    public float AvoidanceRadius => avoidanceRadius;
+    public bool HasReachedDestination { get; private set; }
+
+    // Stato interno
     private Vector3 avoidanceDirection;
-    private bool hasReachedDestination;
     private bool wasAtDestination;
-
-    // Performance optimization
-    private float nextUpdateTime;
-    private readonly Collider[] nearbyColliders = new Collider[32]; // Array riutilizzabile
-    private readonly List<Transform> validNeighbors = new List<Transform>(10);
-
-    // Cache per calcoli
-    private Vector3 cachedPosition;
-    private Vector3 cachedDestination;
     private float cachedDistanceToDestination;
 
-    // Costanti per evitare allocazioni
-    private static readonly Vector3 UP_VECTOR = Vector3.up;
+    // Costanti
     private const float MIN_DISTANCE = 0.1f;
     private const float MIN_AVOIDANCE_MAGNITUDE = 0.1f;
+    private static readonly Vector3 UP_VECTOR = Vector3.up;
 
     #region Unity Lifecycle
 
@@ -52,24 +43,24 @@ public class NPCAvoidance : MonoBehaviour
         InitializeState();
     }
 
-    private void FixedUpdate()
+    private void Start()
     {
-        if (!IsValidForUpdate()) return;
-
-        UpdateCachedValues();
-
-        // Aggiornamento con intervallo per performance
-        if (Time.fixedTime >= nextUpdateTime)
+        // Registra nel manager centralizzato invece di usare FixedUpdate
+        if (NPCAvoidanceManager.Instance != null)
         {
-            nextUpdateTime = Time.fixedTime + updateInterval;
-            CheckDestinationStatus();
+            NPCAvoidanceManager.Instance.RegisterNPC(this);
         }
-
-        // Applica evitamento solo se necessario
-        if (ShouldCalculateAvoidance())
+        else
         {
-            CalculateAvoidance();
-            ApplyAvoidanceForce();
+            Debug.LogError("NPCAvoidanceManager not found! Please add it to the scene.");
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (NPCAvoidanceManager.Instance != null)
+        {
+            NPCAvoidanceManager.Instance.UnregisterNPC(this);
         }
     }
 
@@ -90,128 +81,65 @@ public class NPCAvoidance : MonoBehaviour
     private void InitializeState()
     {
         avoidanceDirection = Vector3.zero;
-        hasReachedDestination = false;
+        HasReachedDestination = false;
         wasAtDestination = false;
-        nextUpdateTime = Time.fixedTime;
     }
 
     #endregion
 
-    #region Validation & Updates
+    #region Manager Interface (chiamato dal manager centralizzato)
 
-    private bool IsValidForUpdate()
+    public void UpdateCachedValues()
     {
-        return aiPath != null && rb != null && enabled && gameObject.activeInHierarchy;
-    }
+        if (!IsValidForUpdate()) return;
 
-    private void UpdateCachedValues()
-    {
-        cachedPosition = transform.position;
-        if (aiPath.destination != Vector3.zero)
+        CachedPosition = transform.position;
+        if (aiPath != null && aiPath.destination != Vector3.zero)
         {
-            cachedDestination = aiPath.destination;
-            cachedDistanceToDestination = Vector3.Distance(cachedPosition, cachedDestination);
+            CachedDestination = aiPath.destination;
+            cachedDistanceToDestination = Vector3.Distance(CachedPosition, CachedDestination);
         }
     }
 
-    private bool ShouldCalculateAvoidance()
+    public void CheckDestinationStatus()
     {
-        return !hasReachedDestination || !disableCollisionAtDestination;
-    }
+        if (aiPath == null) return;
 
-    #endregion
+        wasAtDestination = HasReachedDestination;
 
-    #region Destination Management
-
-    private void CheckDestinationStatus()
-    {
-        wasAtDestination = hasReachedDestination;
-
-        hasReachedDestination = aiPath.reachedDestination &&
+        HasReachedDestination = aiPath.reachedDestination &&
                               cachedDistanceToDestination <= destinationRadius;
 
-        if (wasAtDestination != hasReachedDestination && disableCollisionAtDestination)
+        if (wasAtDestination != HasReachedDestination && disableCollisionAtDestination)
         {
             UpdateCollisionState();
         }
     }
 
-    private void UpdateCollisionState()
+    public bool ShouldCalculateAvoidance()
     {
-        if (col == null || rb == null) return;
-
-        if (hasReachedDestination)
-        {
-            // Disabilita collisioni
-            col.isTrigger = true;
-            rb.isKinematic = true;
-            rb.detectCollisions = false;
-        }
-        else
-        {
-            // Riabilita collisioni
-            col.isTrigger = false;
-            rb.isKinematic = false;
-            rb.detectCollisions = true;
-        }
+        return !HasReachedDestination || !disableCollisionAtDestination;
     }
 
-    #endregion
-
-    #region Avoidance Logic
-
-    private void CalculateAvoidance()
+    public void CalculateAvoidanceFromNeighbors(List<NPCAvoidance> neighbors)
     {
         avoidanceDirection = Vector3.zero;
 
-        int colliderCount = Physics.OverlapSphereNonAlloc(
-            cachedPosition,
-            avoidanceRadius,
-            nearbyColliders,
-            avoidanceLayers
-        );
-
-        if (colliderCount == 0) return;
-
-        FindValidNeighbors(colliderCount);
-        CalculateAvoidanceDirection();
-    }
-
-    private void FindValidNeighbors(int colliderCount)
-    {
-        validNeighbors.Clear();
-        int processedCount = 0;
-
-        for (int i = 0; i < colliderCount && processedCount < maxNeighbors; i++)
+        foreach (var neighbor in neighbors)
         {
-            var collider = nearbyColliders[i];
-            if (collider == null || collider.gameObject == gameObject) continue;
+            if (neighbor == null || neighbor == this) continue;
 
             // Ignora NPC che hanno raggiunto la destinazione
-            var otherAvoidance = collider.GetComponent<NPCAvoidance>();
-            if (otherAvoidance?.hasReachedDestination == true &&
-                otherAvoidance.disableCollisionAtDestination)
+            if (neighbor.HasReachedDestination && neighbor.disableCollisionAtDestination)
                 continue;
 
-            validNeighbors.Add(collider.transform);
-            processedCount++;
-        }
-    }
-
-    private void CalculateAvoidanceDirection()
-    {
-        foreach (var neighbor in validNeighbors)
-        {
-            Vector3 directionAway = cachedPosition - neighbor.position;
+            Vector3 directionAway = CachedPosition - neighbor.CachedPosition;
             float distance = directionAway.magnitude;
 
             if (distance > MIN_DISTANCE && distance < avoidanceRadius)
             {
                 float forceMagnitude = (avoidanceRadius - distance) / avoidanceRadius;
-
-                // Normalizza e rimuovi componente Y
                 directionAway = Vector3.ProjectOnPlane(directionAway.normalized, UP_VECTOR);
-
                 avoidanceDirection += directionAway * forceMagnitude;
             }
         }
@@ -221,24 +149,51 @@ public class NPCAvoidance : MonoBehaviour
         {
             avoidanceDirection.Normalize();
         }
+
+        // Applica forza se necessario
+        ApplyAvoidanceForce();
+    }
+
+    #endregion
+
+    #region Internal Logic
+
+    private bool IsValidForUpdate()
+    {
+        return aiPath != null && rb != null && enabled && gameObject.activeInHierarchy;
+    }
+
+    private void UpdateCollisionState()
+    {
+        if (col == null || rb == null) return;
+
+        if (HasReachedDestination)
+        {
+            col.isTrigger = true;
+            rb.isKinematic = true;
+            rb.detectCollisions = false;
+        }
+        else
+        {
+            col.isTrigger = false;
+            rb.isKinematic = false;
+            rb.detectCollisions = true;
+        }
     }
 
     private void ApplyAvoidanceForce()
     {
-        if (avoidanceDirection.sqrMagnitude < MIN_AVOIDANCE_MAGNITUDE * MIN_AVOIDANCE_MAGNITUDE)
+        if (rb == null || avoidanceDirection.sqrMagnitude < MIN_AVOIDANCE_MAGNITUDE * MIN_AVOIDANCE_MAGNITUDE)
             return;
 
         Vector3 avoidanceVelocity = avoidanceDirection * avoidanceForce;
 
-        // Limita velocità
         if (avoidanceVelocity.sqrMagnitude > maxAvoidanceSpeed * maxAvoidanceSpeed)
         {
             avoidanceVelocity = avoidanceVelocity.normalized * maxAvoidanceSpeed;
         }
 
         rb.AddForce(avoidanceVelocity, ForceMode.Force);
-
-        // Limita velocità orizzontale totale
         LimitHorizontalVelocity();
     }
 
@@ -258,14 +213,6 @@ public class NPCAvoidance : MonoBehaviour
 
     #region Public Interface
 
-    public void ForceDestinationCheck()
-    {
-        UpdateCachedValues();
-        CheckDestinationStatus();
-    }
-
-    public bool HasReachedDestination() => hasReachedDestination;
-
     public void SetAvoidanceRadius(float radius)
     {
         avoidanceRadius = Mathf.Max(0f, radius);
@@ -274,6 +221,12 @@ public class NPCAvoidance : MonoBehaviour
     public void SetAvoidanceForce(float force)
     {
         avoidanceForce = Mathf.Max(0f, force);
+    }
+
+    public void ForceDestinationCheck()
+    {
+        UpdateCachedValues();
+        CheckDestinationStatus();
     }
 
     #endregion
@@ -287,7 +240,7 @@ public class NPCAvoidance : MonoBehaviour
         Vector3 position = transform.position;
 
         // Raggio di evitamento
-        Gizmos.color = hasReachedDestination ? Color.green : Color.yellow;
+        Gizmos.color = HasReachedDestination ? Color.green : Color.yellow;
         Gizmos.DrawWireSphere(position, avoidanceRadius);
 
         // Raggio di destinazione
@@ -302,18 +255,10 @@ public class NPCAvoidance : MonoBehaviour
         }
 
         // Linea verso destinazione
-        if (aiPath != null && cachedDestination != Vector3.zero)
+        if (aiPath != null && CachedDestination != Vector3.zero)
         {
-            Gizmos.color = hasReachedDestination ? Color.green : Color.cyan;
-            Gizmos.DrawLine(position, cachedDestination);
-        }
-
-        // Visualizza vicini validi
-        Gizmos.color = Color.magenta;
-        foreach (var neighbor in validNeighbors)
-        {
-            if (neighbor != null)
-                Gizmos.DrawWireCube(neighbor.position, Vector3.one * 0.5f);
+            Gizmos.color = HasReachedDestination ? Color.green : Color.cyan;
+            Gizmos.DrawLine(position, CachedDestination);
         }
     }
 
