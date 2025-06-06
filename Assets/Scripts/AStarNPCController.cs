@@ -9,10 +9,10 @@ public class AStarNPCController : MonoBehaviour
     public Transform target;
 
     [Header("Performance Settings")]
-    [SerializeField] private int pathRecalculateFrameInterval = 60;
+    [SerializeField] private int pathRecalculateFrameInterval = 300;
     [SerializeField] private float movementThreshold = 0.1f;
     [SerializeField] private bool enableDistanceCalculation = true;
-    [SerializeField] private float updateFrequency = 0.1f; // Update solo ogni 100ms
+    [SerializeField] private float updateFrequency = 0.5f; 
 
     // Cached components
     private Seeker seeker;

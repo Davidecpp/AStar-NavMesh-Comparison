@@ -15,42 +15,60 @@ public class NPCPhysicsToggleManager : MonoBehaviour
 
     [Header("Performance Settings")]
     [SerializeField] private bool batchUpdates = true;
-    [SerializeField] private int maxUpdatesPerFrame = 10;
+    [SerializeField] private int maxUpdatesPerFrame = 20;
     [SerializeField] private bool cleanupNullReferences = true;
+    [SerializeField] private float cleanupInterval = 5f;
+
+    [Header("Optimization Settings")]
+    [SerializeField] private bool useObjectPooling = true;
+    [SerializeField] private bool cacheComponents = true;
+    [SerializeField] private bool useFrameSpread = true;
+    [SerializeField] private int frameSpreadAmount = 3;
 
     [Header("Debug")]
     [SerializeField] private bool enableDebugLogs = false;
 
-    // Collections ottimizzate con HashSet per performance O(1)
+    // Collections ottimizzate
+    private readonly Dictionary<GameObject, NPCPhysicsState> npcStates = new Dictionary<GameObject, NPCPhysicsState>();
     private readonly HashSet<NavMeshAgent> navMeshAgents = new HashSet<NavMeshAgent>();
     private readonly HashSet<AIPath> aStarAgents = new HashSet<AIPath>();
-    private readonly Dictionary<AIPath, NPCPhysicsState> physicsStates = new Dictionary<AIPath, NPCPhysicsState>();
+
+    // Cached components per performance
+    private readonly Dictionary<GameObject, ComponentCache> componentCache = new Dictionary<GameObject, ComponentCache>();
 
     // Stato corrente
     private bool currentCollisionState = true;
     private bool isInitialized = false;
 
-    // Batch processing
-    private Queue<System.Action> pendingUpdates = new Queue<System.Action>();
+    // Batch processing ottimizzato
+    private readonly Queue<BatchUpdate> pendingUpdates = new Queue<BatchUpdate>();
+    private int currentFrame = 0;
+
+    // Cleanup timer
+    private float lastCleanupTime;
 
     // Cached layer mask
     private int defaultLayer = -1;
+
+    // Object pooling
+    private readonly Stack<ComponentCache> componentCachePool = new Stack<ComponentCache>();
 
     #region Data Structures
 
     [System.Serializable]
     public class PhysicsSettings
     {
-        [Header("Collider Settings")]
-        public float capsuleRadius = 0.5f;
-        public float capsuleHeight = 2f;
-        public Vector3 capsuleCenter = new Vector3(0, 1f, 0);
+        [Header("BoxCollider Settings")]
+        public Vector3 boxSize = new Vector3(1f, 2f, 1f);
+        public Vector3 boxCenter = new Vector3(0, 1f, 0);
+        public bool isTrigger = false;
 
         [Header("Rigidbody Settings")]
         public float mass = 1f;
         public float linearDamping = 8f;
         public float angularDamping = 10f;
-        public CollisionDetectionMode collisionMode = CollisionDetectionMode.Continuous;
+        public CollisionDetectionMode collisionMode = CollisionDetectionMode.Discrete;
+        public RigidbodyConstraints constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
 
         [Header("AIPath Settings")]
         public float minMaxSpeed = 3f;
@@ -59,34 +77,107 @@ public class NPCPhysicsToggleManager : MonoBehaviour
         public float rotationSpeed = 180f;
     }
 
+    private struct BatchUpdate
+    {
+        public GameObject npc;
+        public bool enabled;
+        public int frameToProcess;
+
+        public BatchUpdate(GameObject npc, bool enabled, int frameToProcess)
+        {
+            this.npc = npc;
+            this.enabled = enabled;
+            this.frameToProcess = frameToProcess;
+        }
+    }
+
+    private class ComponentCache
+    {
+        public BoxCollider boxCollider;
+        public Rigidbody rigidbody;
+        public NPCAvoidance avoidance;
+        public NavMeshAgent navMeshAgent;
+        public AIPath aiPath;
+        public Transform transform;
+
+        // Dati originali del BoxCollider
+        public Vector3 originalBoxSize;
+        public Vector3 originalBoxCenter;
+        public bool originalIsTrigger;
+
+        public void CacheComponents(GameObject npc)
+        {
+            boxCollider = npc.GetComponent<BoxCollider>();
+            rigidbody = npc.GetComponent<Rigidbody>();
+            avoidance = npc.GetComponent<NPCAvoidance>();
+            navMeshAgent = npc.GetComponent<NavMeshAgent>();
+            aiPath = npc.GetComponent<AIPath>();
+            transform = npc.transform;
+
+            // Cache dati originali del BoxCollider
+            if (boxCollider != null)
+            {
+                originalBoxSize = boxCollider.size;
+                originalBoxCenter = boxCollider.center;
+                originalIsTrigger = boxCollider.isTrigger;
+            }
+        }
+
+        public void Clear()
+        {
+            boxCollider = null;
+            rigidbody = null;
+            avoidance = null;
+            navMeshAgent = null;
+            aiPath = null;
+            transform = null;
+        }
+    }
+
     private class NPCPhysicsState
     {
-        public bool hadCollider;
+        public bool hadBoxCollider;
         public bool hadRigidbody;
         public bool hadAvoidance;
         public bool wasKinematic;
         public bool wasDetectCollisions;
         public bool wasTrigger;
+        public Vector3 originalBoxSize;
+        public Vector3 originalBoxCenter;
 
-        public void SaveState(GameObject npc)
+        public void SaveState(ComponentCache cache)
         {
-            var collider = npc.GetComponent<Collider>();
-            var rb = npc.GetComponent<Rigidbody>();
-            var avoidance = npc.GetComponent<NPCAvoidance>();
+            hadBoxCollider = cache.boxCollider != null;
+            hadRigidbody = cache.rigidbody != null;
+            hadAvoidance = cache.avoidance != null;
 
-            hadCollider = collider != null;
-            hadRigidbody = rb != null;
-            hadAvoidance = avoidance != null;
-
-            if (rb != null)
+            if (cache.rigidbody != null)
             {
-                wasKinematic = rb.isKinematic;
-                wasDetectCollisions = rb.detectCollisions;
+                wasKinematic = cache.rigidbody.isKinematic;
+                wasDetectCollisions = cache.rigidbody.detectCollisions;
             }
 
-            if (collider != null)
+            if (cache.boxCollider != null)
             {
-                wasTrigger = collider.isTrigger;
+                wasTrigger = cache.boxCollider.isTrigger;
+                originalBoxSize = cache.originalBoxSize;
+                originalBoxCenter = cache.originalBoxCenter;
+            }
+        }
+
+        public void RestoreState(ComponentCache cache)
+        {
+            if (cache.rigidbody != null)
+            {
+                cache.rigidbody.isKinematic = wasKinematic;
+                cache.rigidbody.detectCollisions = wasDetectCollisions;
+            }
+
+            if (cache.boxCollider != null)
+            {
+                cache.boxCollider.isTrigger = wasTrigger;
+                cache.boxCollider.size = originalBoxSize;
+                cache.boxCollider.center = originalBoxCenter;
             }
         }
     }
@@ -107,14 +198,18 @@ public class NPCPhysicsToggleManager : MonoBehaviour
 
     private void Update()
     {
+        currentFrame++;
+
         if (batchUpdates)
         {
             ProcessBatchUpdates();
         }
 
-        if (cleanupNullReferences && Time.frameCount % 300 == 0) // Ogni 5 secondi a 60fps
+        // Cleanup periodico
+        if (cleanupNullReferences && Time.time - lastCleanupTime > cleanupInterval)
         {
             CleanupNullReferences();
+            lastCleanupTime = Time.time;
         }
     }
 
@@ -132,6 +227,7 @@ public class NPCPhysicsToggleManager : MonoBehaviour
         defaultLayer = LayerMask.NameToLayer("Default");
         if (defaultLayer == -1) defaultLayer = 0;
 
+        lastCleanupTime = Time.time;
         isInitialized = true;
 
         if (enableDebugLogs)
@@ -160,10 +256,13 @@ public class NPCPhysicsToggleManager : MonoBehaviour
             collisionToggle.onValueChanged.RemoveListener(OnToggleChanged);
         }
 
+        // Cleanup collections
+        npcStates.Clear();
         navMeshAgents.Clear();
         aStarAgents.Clear();
-        physicsStates.Clear();
+        componentCache.Clear();
         pendingUpdates.Clear();
+        componentCachePool.Clear();
     }
 
     #endregion
@@ -173,68 +272,72 @@ public class NPCPhysicsToggleManager : MonoBehaviour
     /// <summary>
     /// Registra un NPC e applica lo stato di collisione corrente
     /// </summary>
-    /// <param name="npc">GameObject dell'NPC da registrare</param>
-    /// <returns>True se registrato con successo</returns>
     public bool RegisterNPC(GameObject npc)
     {
         if (!IsValidNPC(npc)) return false;
 
-        bool registered = false;
+        // Evita duplicati
+        if (npcStates.ContainsKey(npc)) return false;
 
-        // Registra NavMeshAgent
-        if (npc.TryGetComponent(out NavMeshAgent navAgent))
+        // Ottieni o crea cache dei componenti
+        var cache = GetOrCreateComponentCache(npc);
+        cache.CacheComponents(npc);
+
+        // Salva stato originale
+        var state = new NPCPhysicsState();
+        state.SaveState(cache);
+        npcStates[npc] = state;
+
+        // Registra agenti
+        RegisterAgents(cache);
+
+        // Applica stato corrente
+        if (batchUpdates && useFrameSpread)
         {
-            if (navMeshAgents.Add(navAgent))
-            {
-                ApplyNavMeshCollision(navAgent, currentCollisionState);
-                registered = true;
-            }
+            QueueBatchUpdate(npc, currentCollisionState);
+        }
+        else
+        {
+            ApplyCollisionState(cache, currentCollisionState);
         }
 
-        // Registra AIPath
-        if (npc.TryGetComponent(out AIPath aiPath))
-        {
-            if (aStarAgents.Add(aiPath))
-            {
-                // Salva stato originale
-                var state = new NPCPhysicsState();
-                state.SaveState(npc);
-                physicsStates[aiPath] = state;
-
-                ApplyAStarCollision(aiPath, currentCollisionState);
-                registered = true;
-            }
-        }
-
-        if (enableDebugLogs && registered)
+        if (enableDebugLogs)
             Debug.Log($"[NPCPhysicsToggleManager] Registered NPC: {npc.name}");
 
-        return registered;
+        return true;
     }
 
     /// <summary>
     /// Rimuove un NPC dal manager
     /// </summary>
-    /// <param name="npc">GameObject dell'NPC da rimuovere</param>
-    /// <returns>True se rimosso con successo</returns>
     public bool UnregisterNPC(GameObject npc)
     {
         if (npc == null) return false;
 
-        bool unregistered = false;
+        bool removed = false;
 
-        if (npc.TryGetComponent(out NavMeshAgent navAgent))
+        // Rimuovi dallo stato
+        if (npcStates.Remove(npc))
         {
-            unregistered |= navMeshAgents.Remove(navAgent);
+            removed = true;
+
+            // Ripristina stato originale se possibile
+            if (componentCache.TryGetValue(npc, out var cache))
+            {
+                UnregisterAgents(cache);
+
+                // Restituisci cache al pool
+                if (useObjectPooling)
+                {
+                    cache.Clear();
+                    componentCachePool.Push(cache);
+                }
+
+                componentCache.Remove(npc);
+            }
         }
 
-        if (npc.TryGetComponent(out AIPath aiPath))
-        {
-            unregistered |= aStarAgents.Remove(aiPath);
-            physicsStates.Remove(aiPath);
-        }
-
-        return unregistered;
+        return removed;
     }
 
     /// <summary>
@@ -246,11 +349,66 @@ public class NPCPhysicsToggleManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Ottiene il numero di NPC attualmente registrati
+    /// Ottiene statistiche sul manager
     /// </summary>
-    public (int navMesh, int aStar) GetRegisteredCount()
+    public (int total, int navMesh, int aStar, int pending) GetStatistics()
     {
-        return (navMeshAgents.Count, aStarAgents.Count);
+        return (npcStates.Count, navMeshAgents.Count, aStarAgents.Count, pendingUpdates.Count);
+    }
+
+    #endregion
+
+    #region Component Management
+
+    private ComponentCache GetOrCreateComponentCache(GameObject npc)
+    {
+        if (cacheComponents && componentCache.TryGetValue(npc, out var existingCache))
+        {
+            return existingCache;
+        }
+
+        ComponentCache cache;
+        if (useObjectPooling && componentCachePool.Count > 0)
+        {
+            cache = componentCachePool.Pop();
+        }
+        else
+        {
+            cache = new ComponentCache();
+        }
+
+        if (cacheComponents)
+        {
+            componentCache[npc] = cache;
+        }
+
+        return cache;
+    }
+
+    private void RegisterAgents(ComponentCache cache)
+    {
+        if (cache.navMeshAgent != null)
+        {
+            navMeshAgents.Add(cache.navMeshAgent);
+        }
+
+        if (cache.aiPath != null)
+        {
+            aStarAgents.Add(cache.aiPath);
+        }
+    }
+
+    private void UnregisterAgents(ComponentCache cache)
+    {
+        if (cache.navMeshAgent != null)
+        {
+            navMeshAgents.Remove(cache.navMeshAgent);
+        }
+
+        if (cache.aiPath != null)
+        {
+            aStarAgents.Remove(cache.aiPath);
+        }
     }
 
     #endregion
@@ -266,7 +424,7 @@ public class NPCPhysicsToggleManager : MonoBehaviour
 
         if (batchUpdates)
         {
-            QueueBatchUpdates(enabled);
+            QueueAllUpdates(enabled);
         }
         else
         {
@@ -274,47 +432,67 @@ public class NPCPhysicsToggleManager : MonoBehaviour
         }
     }
 
-    private void QueueBatchUpdates(bool enabled)
+    private void QueueAllUpdates(bool enabled)
     {
-        // Queue NavMesh updates
-        foreach (var agent in navMeshAgents.Where(a => a != null))
-        {
-            var capturedAgent = agent; // Closure capture
-            pendingUpdates.Enqueue(() => ApplyNavMeshCollision(capturedAgent, enabled));
-        }
+        int frameOffset = 0;
 
-        // Queue AStar updates
-        foreach (var ai in aStarAgents.Where(a => a != null))
+        foreach (var npc in npcStates.Keys)
         {
-            var capturedAI = ai; // Closure capture
-            pendingUpdates.Enqueue(() => ApplyAStarCollision(capturedAI, enabled));
+            if (npc != null)
+            {
+                int targetFrame = useFrameSpread ? currentFrame + frameOffset : currentFrame;
+                QueueBatchUpdate(npc, enabled, targetFrame);
+
+                if (useFrameSpread)
+                {
+                    frameOffset = (frameOffset + 1) % frameSpreadAmount;
+                }
+            }
         }
+    }
+
+    private void QueueBatchUpdate(GameObject npc, bool enabled, int targetFrame = -1)
+    {
+        if (targetFrame == -1)
+            targetFrame = currentFrame + 1;
+
+        pendingUpdates.Enqueue(new BatchUpdate(npc, enabled, targetFrame));
     }
 
     private void ApplyImmediateUpdates(bool enabled)
     {
-        foreach (var agent in navMeshAgents)
+        foreach (var kvp in componentCache)
         {
-            if (agent != null)
-                ApplyNavMeshCollision(agent, enabled);
-        }
-
-        foreach (var ai in aStarAgents)
-        {
-            if (ai != null)
-                ApplyAStarCollision(ai, enabled);
+            if (kvp.Key != null)
+            {
+                ApplyCollisionState(kvp.Value, enabled);
+            }
         }
     }
 
     private void ProcessBatchUpdates()
     {
         int processed = 0;
+
         while (pendingUpdates.Count > 0 && processed < maxUpdatesPerFrame)
         {
+            var update = pendingUpdates.Peek();
+
+            // Controlla se è il momento di processare questo update
+            if (useFrameSpread && currentFrame < update.frameToProcess)
+            {
+                break;
+            }
+
+            pendingUpdates.Dequeue();
+
             try
             {
-                pendingUpdates.Dequeue().Invoke();
-                processed++;
+                if (update.npc != null && componentCache.TryGetValue(update.npc, out var cache))
+                {
+                    ApplyCollisionState(cache, update.enabled);
+                    processed++;
+                }
             }
             catch (System.Exception e)
             {
@@ -326,6 +504,19 @@ public class NPCPhysicsToggleManager : MonoBehaviour
     #endregion
 
     #region Collision Application
+
+    private void ApplyCollisionState(ComponentCache cache, bool enabled)
+    {
+        if (cache.navMeshAgent != null)
+        {
+            ApplyNavMeshCollision(cache.navMeshAgent, enabled);
+        }
+
+        if (cache.aiPath != null)
+        {
+            ApplyAStarCollision(cache, enabled);
+        }
+    }
 
     private void ApplyNavMeshCollision(NavMeshAgent agent, bool enabled)
     {
@@ -339,46 +530,46 @@ public class NPCPhysicsToggleManager : MonoBehaviour
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"[NPCPhysicsToggleManager] Error applying NavMesh collision to {agent.name}: {e.Message}");
+            Debug.LogError($"[NPCPhysicsToggleManager] Error applying NavMesh collision: {e.Message}");
         }
     }
 
-    private void ApplyAStarCollision(AIPath ai, bool enabled)
+    private void ApplyAStarCollision(ComponentCache cache, bool enabled)
     {
-        if (ai == null) return;
+        if (cache.aiPath == null) return;
 
         try
         {
             if (enabled)
             {
-                EnableAStarAvoidance(ai);
+                EnableAStarAvoidance(cache);
             }
             else
             {
-                DisableAStarAvoidance(ai);
+                DisableAStarAvoidance(cache);
             }
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"[NPCPhysicsToggleManager] Error applying AStar collision to {ai.name}: {e.Message}");
+            Debug.LogError($"[NPCPhysicsToggleManager] Error applying AStar collision: {e.Message}");
         }
     }
 
-    private void EnableAStarAvoidance(AIPath ai)
+    private void EnableAStarAvoidance(ComponentCache cache)
     {
-        var gameObj = ai.gameObject;
+        var gameObj = cache.aiPath.gameObject;
 
-        // Setup Collider
-        var collider = SetupCollider(gameObj);
+        // Setup BoxCollider
+        SetupBoxCollider(cache);
 
         // Setup Rigidbody
-        var rb = SetupRigidbody(gameObj);
+        SetupRigidbody(cache);
 
         // Setup Avoidance
-        SetupAvoidance(gameObj);
+        SetupAvoidance(cache);
 
         // Configure AIPath
-        ConfigureAIPath(ai);
+        ConfigureAIPath(cache.aiPath);
 
         // Set Layer
         if (gameObj.layer == 0)
@@ -387,30 +578,25 @@ public class NPCPhysicsToggleManager : MonoBehaviour
         }
     }
 
-    private void DisableAStarAvoidance(AIPath ai)
+    private void DisableAStarAvoidance(ComponentCache cache)
     {
-        var gameObj = ai.gameObject;
-
         // Disable avoidance
-        var avoidance = gameObj.GetComponent<NPCAvoidance>();
-        if (avoidance != null)
+        if (cache.avoidance != null)
         {
-            avoidance.enabled = false;
+            cache.avoidance.enabled = false;
         }
 
         // Configure Rigidbody
-        var rb = gameObj.GetComponent<Rigidbody>();
-        if (rb != null)
+        if (cache.rigidbody != null)
         {
-            rb.isKinematic = true;
-            rb.detectCollisions = false;
+            cache.rigidbody.isKinematic = true;
+            cache.rigidbody.detectCollisions = false;
         }
 
-        // Configure Collider
-        var collider = gameObj.GetComponent<Collider>();
-        if (collider != null)
+        // Configure BoxCollider
+        if (cache.boxCollider != null)
         {
-            collider.isTrigger = true;
+            cache.boxCollider.isTrigger = true;
         }
     }
 
@@ -418,53 +604,50 @@ public class NPCPhysicsToggleManager : MonoBehaviour
 
     #region Component Setup
 
-    private Collider SetupCollider(GameObject gameObj)
+    private void SetupBoxCollider(ComponentCache cache)
     {
-        var collider = gameObj.GetComponent<Collider>();
-        if (collider == null)
+        var gameObj = cache.aiPath.gameObject;
+
+        if (cache.boxCollider == null)
         {
-            var capsule = gameObj.AddComponent<CapsuleCollider>();
-            capsule.radius = defaultPhysicsSettings.capsuleRadius;
-            capsule.height = defaultPhysicsSettings.capsuleHeight;
-            capsule.center = defaultPhysicsSettings.capsuleCenter;
-            collider = capsule;
+            cache.boxCollider = gameObj.AddComponent<BoxCollider>();
+            cache.boxCollider.size = defaultPhysicsSettings.boxSize;
+            cache.boxCollider.center = defaultPhysicsSettings.boxCenter;
         }
 
-        collider.isTrigger = false;
-        collider.enabled = true;
-
-        return collider;
+        cache.boxCollider.isTrigger = defaultPhysicsSettings.isTrigger;
+        cache.boxCollider.enabled = true;
     }
 
-    private Rigidbody SetupRigidbody(GameObject gameObj)
+    private void SetupRigidbody(ComponentCache cache)
     {
-        var rb = gameObj.GetComponent<Rigidbody>();
-        if (rb == null)
+        var gameObj = cache.aiPath.gameObject;
+
+        if (cache.rigidbody == null)
         {
-            rb = gameObj.AddComponent<Rigidbody>();
+            cache.rigidbody = gameObj.AddComponent<Rigidbody>();
         }
 
+        var rb = cache.rigidbody;
         rb.isKinematic = false;
         rb.mass = defaultPhysicsSettings.mass;
         rb.linearDamping = defaultPhysicsSettings.linearDamping;
         rb.angularDamping = defaultPhysicsSettings.angularDamping;
         rb.useGravity = false;
-        rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
+        rb.constraints = defaultPhysicsSettings.constraints;
         rb.collisionDetectionMode = defaultPhysicsSettings.collisionMode;
-
-        return rb;
     }
 
-    private NPCAvoidance SetupAvoidance(GameObject gameObj)
+    private void SetupAvoidance(ComponentCache cache)
     {
-        var avoidance = gameObj.GetComponent<NPCAvoidance>();
-        if (avoidance == null)
-        {
-            avoidance = gameObj.AddComponent<NPCAvoidance>();
-        }
-        avoidance.enabled = true;
+        var gameObj = cache.aiPath.gameObject;
 
-        return avoidance;
+        if (cache.avoidance == null)
+        {
+            cache.avoidance = gameObj.AddComponent<NPCAvoidance>();
+        }
+
+        cache.avoidance.enabled = true;
     }
 
     private void ConfigureAIPath(AIPath ai)
@@ -484,13 +667,15 @@ public class NPCPhysicsToggleManager : MonoBehaviour
     {
         if (npc == null)
         {
-            Debug.LogWarning("[NPCPhysicsToggleManager] Attempted to register null NPC");
+            if (enableDebugLogs)
+                Debug.LogWarning("[NPCPhysicsToggleManager] Attempted to register null NPC");
             return false;
         }
 
         if (!isInitialized)
         {
-            Debug.LogWarning("[NPCPhysicsToggleManager] Manager not initialized");
+            if (enableDebugLogs)
+                Debug.LogWarning("[NPCPhysicsToggleManager] Manager not initialized");
             return false;
         }
 
@@ -499,15 +684,24 @@ public class NPCPhysicsToggleManager : MonoBehaviour
 
     private void CleanupNullReferences()
     {
-        // Cleanup NavMesh agents
-        navMeshAgents.RemoveWhere(agent => agent == null);
+        // Cleanup con lista temporanea per evitare modifiche durante iterazione
+        var keysToRemove = new List<GameObject>();
 
-        // Cleanup AStar agents
-        var keysToRemove = physicsStates.Keys.Where(key => key == null).ToList();
+        foreach (var kvp in npcStates)
+        {
+            if (kvp.Key == null)
+            {
+                keysToRemove.Add(kvp.Key);
+            }
+        }
+
         foreach (var key in keysToRemove)
         {
-            physicsStates.Remove(key);
+            UnregisterNPC(key);
         }
+
+        // Cleanup agenti
+        navMeshAgents.RemoveWhere(agent => agent == null);
         aStarAgents.RemoveWhere(ai => ai == null);
 
         if (enableDebugLogs && keysToRemove.Count > 0)
@@ -521,14 +715,13 @@ public class NPCPhysicsToggleManager : MonoBehaviour
     [System.Diagnostics.Conditional("UNITY_EDITOR")]
     private void OnValidate()
     {
-        if (defaultPhysicsSettings.capsuleRadius <= 0)
-            defaultPhysicsSettings.capsuleRadius = 0.5f;
+        if (defaultPhysicsSettings.boxSize.x <= 0) defaultPhysicsSettings.boxSize.x = 1f;
+        if (defaultPhysicsSettings.boxSize.y <= 0) defaultPhysicsSettings.boxSize.y = 2f;
+        if (defaultPhysicsSettings.boxSize.z <= 0) defaultPhysicsSettings.boxSize.z = 1f;
 
-        if (defaultPhysicsSettings.capsuleHeight <= 0)
-            defaultPhysicsSettings.capsuleHeight = 2f;
-
-        if (maxUpdatesPerFrame <= 0)
-            maxUpdatesPerFrame = 1;
+        if (maxUpdatesPerFrame <= 0) maxUpdatesPerFrame = 1;
+        if (cleanupInterval <= 0) cleanupInterval = 1f;
+        if (frameSpreadAmount <= 0) frameSpreadAmount = 1;
     }
 
     #endregion
