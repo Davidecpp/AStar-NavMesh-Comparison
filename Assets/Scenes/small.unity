@@ -1681,6 +1681,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1464658213423168203, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 350
+      objectReference: {fileID: 0}
+    - target: {fileID: 1464658213423168203, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 127
       objectReference: {fileID: 0}
@@ -3114,7 +3118,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4178011450358076170, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
       propertyPath: obstacleCount
-      value: 100
+      value: 150
       objectReference: {fileID: 0}
     - target: {fileID: 4178011450358076170, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
       propertyPath: minDistanceBetweenObstacles

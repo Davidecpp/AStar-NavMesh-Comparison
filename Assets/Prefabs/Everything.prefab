@@ -11817,9 +11817,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   npcProcessedPerFrame: 20
   updateInterval: 0.1
-  useMultiThreading: 1
+  maxNPCsToProcess: 100
   cellSize: 10
   maxNPCsPerCell: 50
+  useLODSystem: 1
+  highDetailDistance: 20
+  mediumDetailDistance: 50
 --- !u!1 &6975200346866274166
 GameObject:
   m_ObjectHideFlags: 0
@@ -14932,13 +14935,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   collisionToggle: {fileID: 6109167392867220436}
   defaultPhysicsSettings:
-    capsuleRadius: 0.5
-    capsuleHeight: 2
-    capsuleCenter: {x: 0, y: 1, z: 0}
+    boxSize: {x: 1, y: 2, z: 1}
+    boxCenter: {x: 0, y: 1, z: 0}
+    isTrigger: 0
     mass: 1
     linearDamping: 8
     angularDamping: 10
     collisionMode: 1
+    constraints: 116
     minMaxSpeed: 3
     slowdownDistance: 3
     pickNextWaypointDist: 2
@@ -14946,6 +14950,11 @@ MonoBehaviour:
   batchUpdates: 1
   maxUpdatesPerFrame: 10
   cleanupNullReferences: 1
+  cleanupInterval: 5
+  useObjectPooling: 1
+  cacheComponents: 1
+  useFrameSpread: 1
+  frameSpreadAmount: 3
   enableDebugLogs: 0
 --- !u!1 &8344607617480926462
 GameObject:
@@ -16237,7 +16246,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 240246007069168082, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
       propertyPath: m_Value
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 306847125560025256, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
       propertyPath: m_Pivot.x
@@ -16729,7 +16738,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4981680399077524128, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 380
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 4981680399077524128, guid: 7a71eb583952f9f4ab7dbb71d671e451, type: 3}
       propertyPath: m_AnchoredPosition.y
