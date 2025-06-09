@@ -70,6 +70,37 @@ public class NPCSpawner : MonoBehaviour
     private Vector3[] spawnPositions = new Vector3[50]; // Max batch size buffer
     private readonly System.Random random = new System.Random();
 
+    // Struttura per tracciare le statistiche cumulative di calcTime
+    private struct NPCCalcTimeStats
+    {
+        public double totalCalcTime;
+        public int calcCount;
+        public double lastCalcTime;
+
+        public void Reset()
+        {
+            totalCalcTime = 0;
+            calcCount = 0;
+            lastCalcTime = 0;
+        }
+
+        public void AddCalcTime(double calcTime)
+        {
+            totalCalcTime += calcTime;
+            calcCount++;
+            lastCalcTime = calcTime;
+        }
+
+        public double GetAverageCalcTime()
+        {
+            return calcCount > 0 ? totalCalcTime / calcCount : 0;
+        }
+    }
+
+    // Dizionari per tracciare le statistiche di calcTime per ogni NPC
+    private Dictionary<NavMeshNPCController, NPCCalcTimeStats> navMeshCalcStats = new Dictionary<NavMeshNPCController, NPCCalcTimeStats>();
+    private Dictionary<AStarNPCController, NPCCalcTimeStats> aStarCalcStats = new Dictionary<AStarNPCController, NPCCalcTimeStats>();
+
     private struct NPCStats
     {
         public float distanceTotal;
@@ -229,7 +260,7 @@ public class NPCSpawner : MonoBehaviour
         // Temporarily disable physics auto-sync for better performance
         bool originalAutoSync = Physics.autoSyncTransforms;
         Physics.autoSyncTransforms = false;
- 
+
         try
         {
             for (int i = 0; i < count; i += spawnBatchSize)
@@ -350,6 +381,12 @@ public class NPCSpawner : MonoBehaviour
             navController.target = npcTarget;
             navMeshControllers.Add(navController);
             navController.ResetNPC();
+
+            // Inizializza le statistiche di calcTime per questo NPC
+            if (!navMeshCalcStats.ContainsKey(navController))
+            {
+                navMeshCalcStats[navController] = new NPCCalcTimeStats();
+            }
         }
     }
 
@@ -372,6 +409,12 @@ public class NPCSpawner : MonoBehaviour
             aStarController.target = npcTarget;
             aStarControllers.Add(aStarController);
             aStarController.ResetNPC();
+
+            // Inizializza le statistiche di calcTime per questo NPC
+            if (!aStarCalcStats.ContainsKey(aStarController))
+            {
+                aStarCalcStats[aStarController] = new NPCCalcTimeStats();
+            }
         }
     }
 
@@ -415,7 +458,46 @@ public class NPCSpawner : MonoBehaviour
         // Only update stats if not spawning and panel is open
         if (!isSpawning && panelStatsOpen)
         {
+            UpdateCalcTimeStats(); // Aggiorna le statistiche di calcTime
             UpdateStats();
+        }
+    }
+
+    // Aggiorna le statistiche cumulative di calcTime per tutti gli NPC
+    private void UpdateCalcTimeStats()
+    {
+        // Aggiorna le statistiche per NavMesh NPCs
+        foreach (var controller in navMeshControllers)
+        {
+            if (controller != null && navMeshCalcStats.ContainsKey(controller))
+            {
+                double currentCalcTime = controller.GetCalcTime();
+                var stats = navMeshCalcStats[controller];
+
+                // Aggiungi solo se il calcTime è cambiato (nuovo calcolo del percorso)
+                if (currentCalcTime != stats.lastCalcTime)
+                {
+                    stats.AddCalcTime(currentCalcTime);
+                    navMeshCalcStats[controller] = stats;
+                }
+            }
+        }
+
+        // Aggiorna le statistiche per A* NPCs
+        foreach (var controller in aStarControllers)
+        {
+            if (controller != null && aStarCalcStats.ContainsKey(controller))
+            {
+                double currentCalcTime = controller.GetCalcTime();
+                var stats = aStarCalcStats[controller];
+
+                // Aggiungi solo se il calcTime è cambiato (nuovo calcolo del percorso)
+                if (currentCalcTime != stats.lastCalcTime)
+                {
+                    stats.AddCalcTime(currentCalcTime);
+                    aStarCalcStats[controller] = stats;
+                }
+            }
         }
     }
 
@@ -489,7 +571,7 @@ public class NPCSpawner : MonoBehaviour
         aStarStats.Reset();
     }
 
-    // Processes NavMesh and A* NPCs to gather statistics and update UI text
+    // Processes NavMesh NPCs to gather statistics and update UI text
     private void ProcessNavMeshNPCs()
     {
         // Iterate in reverse to safely remove null entries
@@ -499,18 +581,27 @@ public class NPCSpawner : MonoBehaviour
             if (controller == null)
             {
                 navMeshControllers.RemoveAt(i);
+                // Rimuovi anche dalle statistiche
+                navMeshCalcStats.Remove(controller);
                 continue;
             }
 
             float dist = controller.GetDistance();
             double pathTime = controller.GetPathTime();
-            double calcTime = controller.GetCalcTime();
 
-            navMeshStats.AddUnchecked(dist, pathTime, calcTime);
-            tempNavMeshStats.Add($"[NavMesh NPC] {controller.name} - Distanza: {dist:F2} m, PathTime: {pathTime:F2} s, CalcTime: {calcTime:F2} ms");
+            // Usa la media dei calcTime invece dell'ultimo valore
+            double avgCalcTime = 0;
+            if (navMeshCalcStats.ContainsKey(controller))
+            {
+                avgCalcTime = navMeshCalcStats[controller].GetAverageCalcTime();
+            }
+
+            navMeshStats.AddUnchecked(dist, pathTime, avgCalcTime);
+            tempNavMeshStats.Add($"[NavMesh NPC] {controller.name} - Distanza: {dist:F2} m, PathTime: {pathTime:F2} s, CalcTime (media): {avgCalcTime:F2} ms");
         }
     }
 
+    // Processes A* NPCs to gather statistics and update UI text
     private void ProcessAStarNPCs()
     {
         for (int i = aStarControllers.Count - 1; i >= 0; i--)
@@ -519,15 +610,23 @@ public class NPCSpawner : MonoBehaviour
             if (controller == null)
             {
                 aStarControllers.RemoveAt(i);
+                // Rimuovi anche dalle statistiche
+                aStarCalcStats.Remove(controller);
                 continue;
             }
 
             float dist = controller.GetDistance();
             float pathTime = controller.GetPathTime();
-            double calcTime = controller.GetCalcTime();
 
-            aStarStats.AddUnchecked(dist, pathTime, calcTime);
-            tempAStarStats.Add($"[A* NPC] {controller.name} - Distanza: {dist:F2} m, PathTime: {pathTime:F2} s, CalcTime: {calcTime:F2} ms");
+            // Usa la media dei calcTime invece dell'ultimo valore
+            double avgCalcTime = 0;
+            if (aStarCalcStats.ContainsKey(controller))
+            {
+                avgCalcTime = aStarCalcStats[controller].GetAverageCalcTime();
+            }
+
+            aStarStats.AddUnchecked(dist, pathTime, avgCalcTime);
+            tempAStarStats.Add($"[A* NPC] {controller.name} - Distanza: {dist:F2} m, PathTime: {pathTime:F2} s, CalcTime (media): {avgCalcTime:F2} ms");
         }
     }
 
@@ -653,5 +752,9 @@ public class NPCSpawner : MonoBehaviour
 
         navMeshPool?.Clear();
         aStarPool?.Clear();
+
+        // Pulisci anche i dizionari delle statistiche
+        navMeshCalcStats?.Clear();
+        aStarCalcStats?.Clear();
     }
 }
