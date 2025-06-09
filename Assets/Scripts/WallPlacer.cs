@@ -19,7 +19,7 @@ public class WallPlacer : MonoBehaviour
     private Material originalMaterial;
 
     public NavMeshSurface navMeshSurface;
-    public delegate void OnNavMeshUpdated(); // Evento per aggiornare il NavMesh
+    public delegate void OnNavMeshUpdated(); 
     public static event OnNavMeshUpdated NavMeshUpdated;
 
     private Quaternion currentRotation = Quaternion.identity;
@@ -40,32 +40,32 @@ public class WallPlacer : MonoBehaviour
             Debug.LogWarning("NavMeshSurface non assegnato. Assicurati di assegnarlo nell'Inspector.");
         }
 
-        // Crea la preview
         CreatePreviewWall();
     }
 
     void Update()
     {
-        // Se la preview è stata distrutta (cambio scena), ricreala
+        // If wallPrefab is null, we cannot proceed
         if (previewWall == null)
         {
             CreatePreviewWall();
-            if (previewWall == null) return; // Se ancora null, wallPrefab potrebbe essere null
+            if (previewWall == null) return; 
         }
 
+        // Check if wallHighlighted is null or has been destroyed
         if (wallHighlighted != null && wallHighlighted.Equals(null))
         {
-            wallHighlighted = null; // È stato distrutto dal sistema
+            wallHighlighted = null; 
         }
 
-        // Controllo per evitare piazzamento se il pannello delle statistiche degli NPC aperto
+        // Check if the stats panel is open
         if (NPCSpawner.panelStatsOpen)
         {
             previewWall.SetActive(false);
             ClearHighlight();
             return;
         }
-        // Controllo per evitare piazzamento se il mouse non si trova su un oggetto UI
+        // Check if the mouse is over a UI element
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
         {
             previewWall.SetActive(false);
@@ -75,7 +75,7 @@ public class WallPlacer : MonoBehaviour
         Vector2 mousePos = Mouse.current.position.ReadValue();
         Ray ray = mainCamera.ScreenPointToRay(mousePos);
 
-        // Posizionamento della preview
+        // Preview wall positioning
         if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, placementMask))
         {
             Vector3 placePosition = hit.point;
@@ -91,7 +91,7 @@ public class WallPlacer : MonoBehaviour
             previewWall.SetActive(false);
         }
 
-        // Cambio rotazione con Spazio
+        // Change wall rotation with 'R' key
         if (Keyboard.current.rKey.wasPressedThisFrame)
         {
             currentRotation = currentRotation == Quaternion.identity
@@ -99,7 +99,7 @@ public class WallPlacer : MonoBehaviour
                 : Quaternion.identity;
         }
 
-        // Evidenziazione muro esistente
+        // Highlight wall with mouse over
         if (Physics.Raycast(ray, out RaycastHit hitInfo, Mathf.Infinity, wallMask))
         {
             GameObject wall = hitInfo.collider.gameObject;
@@ -122,7 +122,7 @@ public class WallPlacer : MonoBehaviour
             ClearHighlight();
         }
 
-        // Posizionamento muro reale con click sinistro
+        // Place wall with left click
         if (Mouse.current.leftButton.wasPressedThisFrame && previewWall.activeSelf)
         {
             Vector3 pos = previewWall.transform.position;
@@ -135,7 +135,7 @@ public class WallPlacer : MonoBehaviour
             //Debug.Log($"Muro posizionato in {pos} con rotazione {rot.eulerAngles}");
         }
 
-        // Rimozione muro con click destro
+        // Remove wall with right click
         if (Mouse.current.rightButton.wasPressedThisFrame && wallHighlighted != null)
         {
             Bounds bounds = wallHighlighted.GetComponent<Collider>().bounds;
@@ -147,7 +147,6 @@ public class WallPlacer : MonoBehaviour
         }
     }
 
-    // Metodo per creare la preview wall
     void CreatePreviewWall()
     {
         if (wallPrefab != null)
@@ -162,24 +161,24 @@ public class WallPlacer : MonoBehaviour
         }
     }
 
-    // Ricalcola il percorso del NavMesh e notifica gli NPC
+    // Recalculate the NavMesh after placing or removing walls
     void RecalculateNavPath()
     {
         if (previewWall != null)
-            previewWall.SetActive(false); // Disattiva la preview temporaneamente
+            previewWall.SetActive(false); 
 
         if (navMeshSurface != null)
         {
             navMeshSurface.UpdateNavMesh(navMeshSurface.navMeshData);
-            NavMeshUpdated?.Invoke(); // Notifica agli NPC di ricalcolare
+            NavMeshUpdated?.Invoke(); 
         }
 
         if (previewWall != null)
-            previewWall.SetActive(true); // Riattiva dopo aggiornamento
+            previewWall.SetActive(true);
     }
     IEnumerator DelayedNavMeshUpdate()
     {
-        yield return null; // Attendi un frame per completare Destroy
+        yield return null; // Wait for the end of the frame
 
         RecalculateNavPath();
     }

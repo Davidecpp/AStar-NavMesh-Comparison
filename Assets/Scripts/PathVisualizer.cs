@@ -12,7 +12,6 @@ public class PathVisualizer : MonoBehaviour
     private ABPath lastRenderedPath;
     private Vector3[] pathPositionsCache;
 
-    // Aggiungi questa variabile per lo stato della checkbox
     public bool ShowPaths = true;
 
     void Start()
@@ -22,15 +21,15 @@ public class PathVisualizer : MonoBehaviour
         seeker = GetComponent<Seeker>();
         StartCoroutine(UpdatePathCoroutine());
 
-        // Imposta inizialmente la visibilità in base alla checkbox
         UpdatePathVisibility();
     }
 
+    // Coroutine to update the path at regular intervals
     IEnumerator UpdatePathCoroutine()
     {
         while (true)
         {
-            if (ShowPaths) // Solo aggiornare il percorso se è visibile
+            if (ShowPaths) 
             {
                 UpdatePath();
             }
@@ -44,8 +43,10 @@ public class PathVisualizer : MonoBehaviour
 
     void UpdatePath()
     {
-        if (!ShowPaths) return; // Non fare nulla se i percorsi sono nascosti
+        // If paths are not visible, skip the update
+        if (!ShowPaths) return;
 
+        // Clear the line renderer if no path is available
         if (navMeshAgent != null && navMeshAgent.hasPath)
         {
             NavMeshPath path = navMeshAgent.path;
@@ -70,6 +71,7 @@ public class PathVisualizer : MonoBehaviour
                 return;
             }
 
+            // Check if the path has changed before updating the line renderer
             if (currentPath != lastRenderedPath)
             {
                 lastRenderedPath = currentPath;
@@ -91,7 +93,6 @@ public class PathVisualizer : MonoBehaviour
         }
     }
 
-    // Metodo per aggiornare la visibilità in base alla checkbox
     private void UpdatePathVisibility()
     {
         if (!ShowPaths)
@@ -100,13 +101,13 @@ public class PathVisualizer : MonoBehaviour
         }
     }
 
-    // Aggiungi questo metodo per permettere di cambiare la visibilità da altri script
     public void SetPathsVisible(bool visible)
     {
         ShowPaths = visible;
         UpdatePathVisibility();
     }
 
+    // Unity lifecycle methods to register and unregister the visualizer with the PathVisibilityController
     void OnEnable()
     {
         PathVisibilityController.Instance?.RegisterVisualizer(this);

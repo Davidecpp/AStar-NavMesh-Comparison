@@ -99,7 +99,7 @@ public class NPCSpawner : MonoBehaviour
 
     public static bool panelStatsOpen = false;
 
-    // Costanti per evitare allocazioni - più complete
+    // Costants for UI text formatting
     private const string NAVMESH_HEADER = "<b>== NPC NavMesh ==</b>\n";
     private const string ASTAR_HEADER = "<b>== NPC A* ==</b>\n";
     private const string MEDIA_DISTANZA = "\n<b>Media distanza:</b> ";
@@ -158,6 +158,7 @@ public class NPCSpawner : MonoBehaviour
         const int itemsPerFrame = 10;
         int itemsCreated = 0;
 
+        // Instantiate initial NPCs for both NavMesh and A* pools
         while (itemsCreated < INITIAL_POOL_SIZE)
         {
             int itemsThisFrame = Mathf.Min(itemsPerFrame, INITIAL_POOL_SIZE - itemsCreated);
@@ -200,6 +201,7 @@ public class NPCSpawner : MonoBehaviour
         currentSpawnCoroutine = StartCoroutine(SpawnNPCsCoroutineOptimized(count));
     }
 
+    // Prepares the spawn data based on the selected NPC type and count
     private void PrepareSpawnData(int count, int npcType)
     {
         cachedSpawnData.spawnNavMesh = npcType == 0 || npcType == 2;
@@ -213,6 +215,7 @@ public class NPCSpawner : MonoBehaviour
         EnsureListCapacity(cachedSpawnData.totalToSpawn);
     }
 
+    // Optimized coroutine for spawning NPCs in batches
     private IEnumerator SpawnNPCsCoroutineOptimized(int count)
     {
         isSpawning = true;
@@ -226,7 +229,7 @@ public class NPCSpawner : MonoBehaviour
         // Temporarily disable physics auto-sync for better performance
         bool originalAutoSync = Physics.autoSyncTransforms;
         Physics.autoSyncTransforms = false;
-
+ 
         try
         {
             for (int i = 0; i < count; i += spawnBatchSize)
@@ -242,6 +245,7 @@ public class NPCSpawner : MonoBehaviour
                 {
                     Vector3 spawnPos = spawnPositions[j];
 
+                    // Spawn NavMesh and A* NPCs based on cached data
                     if (cachedSpawnData.spawnNavMesh)
                     {
                         SpawnNavMeshNPCOptimized(spawnPos);
@@ -309,9 +313,12 @@ public class NPCSpawner : MonoBehaviour
         return int.TryParse(numberInput.text, out count) && count > 0;
     }
 
+    // Ensures the lists have enough capacity to avoid frequent reallocations
     private void EnsureListCapacity(int additionalCapacity)
     {
         int newCapacity = npcList.Count + additionalCapacity;
+
+        // Increase capacity only if needed
         if (npcList.Capacity < newCapacity)
         {
             npcList.Capacity = newCapacity;
@@ -326,6 +333,7 @@ public class NPCSpawner : MonoBehaviour
         }
     }
 
+    // Optimized spawn methods for NavMesh and A* NPCs
     private void SpawnNavMeshNPCOptimized(Vector3 spawnPos)
     {
         GameObject navNpc = GetOrCreateNavMeshNPC();
@@ -367,6 +375,7 @@ public class NPCSpawner : MonoBehaviour
         }
     }
 
+    // Object pooling methods for NavMesh and A* NPCs
     private GameObject GetOrCreateNavMeshNPC()
     {
         if (useObjectPooling && navMeshPool.Count > 0)
@@ -410,6 +419,7 @@ public class NPCSpawner : MonoBehaviour
         }
     }
 
+    // Handles keyboard input for toggling stats, saving, and cancelling spawning
     private void HandleInput()
     {
         if (keyboard.tabKey.wasPressedThisFrame)
@@ -429,6 +439,7 @@ public class NPCSpawner : MonoBehaviour
         }
     }
 
+    // Cancels the current spawning process and resets the state
     private void CancelSpawning()
     {
         if (currentSpawnCoroutine != null)
@@ -478,8 +489,10 @@ public class NPCSpawner : MonoBehaviour
         aStarStats.Reset();
     }
 
+    // Processes NavMesh and A* NPCs to gather statistics and update UI text
     private void ProcessNavMeshNPCs()
     {
+        // Iterate in reverse to safely remove null entries
         for (int i = navMeshControllers.Count - 1; i >= 0; i--)
         {
             var controller = navMeshControllers[i];
@@ -518,8 +531,10 @@ public class NPCSpawner : MonoBehaviour
         }
     }
 
+    // Updates the graphs with the average statistics for NavMesh and A* NPCs
     private void UpdateGraphs()
     {
+        // Check if the graphs are initialized and have data to display
         if (navMeshStats.count > 0 && graficoNavMesh != null)
         {
             graficoNavMesh.AddDataPoint(
@@ -528,7 +543,6 @@ public class NPCSpawner : MonoBehaviour
                 navMeshStats.distanceTotal / navMeshStats.count
             );
         }
-
         if (aStarStats.count > 0 && graficoAStar != null)
         {
             graficoAStar.AddDataPoint(
@@ -599,10 +613,13 @@ public class NPCSpawner : MonoBehaviour
         panelStatsTxt.gameObject.SetActive(panelStatsOpen);
     }
 
+    // Saves the statistics to a file in the Assets/NPCStatsLogs folder
     private void SaveStatsToFile(string content)
     {
+        // Ensure the folder exists
         string folderPath = Path.Combine(Application.dataPath, "NPCStatsLogs");
 
+        // Create the folder if it doesn't exist
         if (!Directory.Exists(folderPath))
             Directory.CreateDirectory(folderPath);
 
@@ -620,6 +637,7 @@ public class NPCSpawner : MonoBehaviour
         }
     }
 
+    // Cleans up resources when the spawner is destroyed
     private void OnDestroy()
     {
         if (currentSpawnCoroutine != null)

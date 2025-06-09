@@ -28,19 +28,19 @@ public class NPCPhysicsToggleManager : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool enableDebugLogs = false;
 
-    // Collections ottimizzate
+    // Collections 
     private readonly Dictionary<GameObject, NPCPhysicsState> npcStates = new Dictionary<GameObject, NPCPhysicsState>();
     private readonly HashSet<NavMeshAgent> navMeshAgents = new HashSet<NavMeshAgent>();
     private readonly HashSet<AIPath> aStarAgents = new HashSet<AIPath>();
 
-    // Cached components per performance
+    // Cached components for performance
     private readonly Dictionary<GameObject, ComponentCache> componentCache = new Dictionary<GameObject, ComponentCache>();
 
-    // Stato corrente
+    // Current collision state
     private bool currentCollisionState = true;
     private bool isInitialized = false;
 
-    // Batch processing ottimizzato
+    // Batch processing 
     private readonly Queue<BatchUpdate> pendingUpdates = new Queue<BatchUpdate>();
     private int currentFrame = 0;
 
@@ -100,7 +100,6 @@ public class NPCPhysicsToggleManager : MonoBehaviour
         public AIPath aiPath;
         public Transform transform;
 
-        // Dati originali del BoxCollider
         public Vector3 originalBoxSize;
         public Vector3 originalBoxCenter;
         public bool originalIsTrigger;
@@ -114,7 +113,7 @@ public class NPCPhysicsToggleManager : MonoBehaviour
             aiPath = npc.GetComponent<AIPath>();
             transform = npc.transform;
 
-            // Cache dati originali del BoxCollider
+            // Cache original values
             if (boxCollider != null)
             {
                 originalBoxSize = boxCollider.size;
@@ -134,6 +133,7 @@ public class NPCPhysicsToggleManager : MonoBehaviour
         }
     }
 
+    // State of NPC physics components
     private class NPCPhysicsState
     {
         public bool hadBoxCollider;
@@ -205,7 +205,7 @@ public class NPCPhysicsToggleManager : MonoBehaviour
             ProcessBatchUpdates();
         }
 
-        // Cleanup periodico
+        // Cleanup null references periodically
         if (cleanupNullReferences && Time.time - lastCleanupTime > cleanupInterval)
         {
             CleanupNullReferences();
@@ -222,6 +222,7 @@ public class NPCPhysicsToggleManager : MonoBehaviour
 
     #region Initialization & Cleanup
 
+    // Initializes the manager and sets up the default layer
     private void InitializeManager()
     {
         defaultLayer = LayerMask.NameToLayer("Default");
@@ -241,7 +242,6 @@ public class NPCPhysicsToggleManager : MonoBehaviour
             Debug.LogError("[NPCPhysicsToggleManager] Toggle non assegnato!", this);
             return;
         }
-
         collisionToggle.onValueChanged.AddListener(OnToggleChanged);
         currentCollisionState = collisionToggle.isOn;
 
@@ -269,29 +269,25 @@ public class NPCPhysicsToggleManager : MonoBehaviour
 
     #region Public Interface
 
-    /// <summary>
-    /// Registra un NPC e applica lo stato di collisione corrente
-    /// </summary>
+    // Registers an NPC GameObject with the manager
     public bool RegisterNPC(GameObject npc)
     {
         if (!IsValidNPC(npc)) return false;
 
-        // Evita duplicati
+        // Duplicates check
         if (npcStates.ContainsKey(npc)) return false;
 
-        // Ottieni o crea cache dei componenti
         var cache = GetOrCreateComponentCache(npc);
         cache.CacheComponents(npc);
 
-        // Salva stato originale
+        // Save current state
         var state = new NPCPhysicsState();
         state.SaveState(cache);
         npcStates[npc] = state;
 
-        // Registra agenti
         RegisterAgents(cache);
 
-        // Applica stato corrente
+        // Set the initial collision state
         if (batchUpdates && useFrameSpread)
         {
             QueueBatchUpdate(npc, currentCollisionState);
@@ -307,26 +303,24 @@ public class NPCPhysicsToggleManager : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Rimuove un NPC dal manager
-    /// </summary>
+    // Unregisters an NPC GameObject from the manager
     public bool UnregisterNPC(GameObject npc)
     {
         if (npc == null) return false;
 
         bool removed = false;
 
-        // Rimuovi dallo stato
+        // Removes the NPC from the states dictionary
         if (npcStates.Remove(npc))
         {
             removed = true;
 
-            // Ripristina stato originale se possibile
+            // Restore original state
             if (componentCache.TryGetValue(npc, out var cache))
             {
                 UnregisterAgents(cache);
 
-                // Restituisci cache al pool
+                // Return the state to original
                 if (useObjectPooling)
                 {
                     cache.Clear();
@@ -340,17 +334,11 @@ public class NPCPhysicsToggleManager : MonoBehaviour
         return removed;
     }
 
-    /// <summary>
-    /// Forza l'aggiornamento di tutti gli NPC registrati
-    /// </summary>
     public void ForceUpdateAllNPCs()
     {
         OnToggleChanged(currentCollisionState);
     }
 
-    /// <summary>
-    /// Ottiene statistiche sul manager
-    /// </summary>
     public (int total, int navMesh, int aStar, int pending) GetStatistics()
     {
         return (npcStates.Count, navMeshAgents.Count, aStarAgents.Count, pendingUpdates.Count);
@@ -360,23 +348,27 @@ public class NPCPhysicsToggleManager : MonoBehaviour
 
     #region Component Management
 
+    // Retrieves or creates a component cache for the given NPC
     private ComponentCache GetOrCreateComponentCache(GameObject npc)
     {
+        // Check if the NPC is already registered
         if (cacheComponents && componentCache.TryGetValue(npc, out var existingCache))
         {
             return existingCache;
         }
 
+        // Create a new cache if not found
         ComponentCache cache;
         if (useObjectPooling && componentCachePool.Count > 0)
         {
             cache = componentCachePool.Pop();
         }
+        // If pooling is not used or no cache is available, create a new one
         else
         {
             cache = new ComponentCache();
         }
-
+        // Cache the components
         if (cacheComponents)
         {
             componentCache[npc] = cache;
@@ -385,6 +377,7 @@ public class NPCPhysicsToggleManager : MonoBehaviour
         return cache;
     }
 
+    // Registers or unregisters NavMesh and AStar agents based on the component cache
     private void RegisterAgents(ComponentCache cache)
     {
         if (cache.navMeshAgent != null)
@@ -432,6 +425,7 @@ public class NPCPhysicsToggleManager : MonoBehaviour
         }
     }
 
+    // Queues updates for all registered NPCs
     private void QueueAllUpdates(bool enabled)
     {
         int frameOffset = 0;
@@ -478,7 +472,7 @@ public class NPCPhysicsToggleManager : MonoBehaviour
         {
             var update = pendingUpdates.Peek();
 
-            // Controlla se è il momento di processare questo update
+            // Check if the current frame is less than the frame to process
             if (useFrameSpread && currentFrame < update.frameToProcess)
             {
                 break;
@@ -604,14 +598,12 @@ public class NPCPhysicsToggleManager : MonoBehaviour
 
     public void SetCollisionState(bool enabled)
     {
-        // Imposta lo stato nel Toggle se presente (per sincronizzare UI)
         if (collisionToggle != null)
         {
             collisionToggle.isOn = enabled;
         }
         else
         {
-            // Se non c'è Toggle, chiama direttamente il metodo
             OnToggleChanged(enabled);
         }
     }
@@ -619,6 +611,7 @@ public class NPCPhysicsToggleManager : MonoBehaviour
 
     #region Component Setup
 
+    // Sets up the BoxCollider, Rigidbody, and NPCAvoidance components for AStar agents
     private void SetupBoxCollider(ComponentCache cache)
     {
         var gameObj = cache.aiPath.gameObject;
@@ -699,7 +692,7 @@ public class NPCPhysicsToggleManager : MonoBehaviour
 
     private void CleanupNullReferences()
     {
-        // Cleanup con lista temporanea per evitare modifiche durante iterazione
+        // Cleanup with temporary list to avoid modifying the dictionary while iterating
         var keysToRemove = new List<GameObject>();
 
         foreach (var kvp in npcStates)
@@ -715,7 +708,7 @@ public class NPCPhysicsToggleManager : MonoBehaviour
             UnregisterNPC(key);
         }
 
-        // Cleanup agenti
+        // Cleanup agents
         navMeshAgents.RemoveWhere(agent => agent == null);
         aStarAgents.RemoveWhere(ai => ai == null);
 

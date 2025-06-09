@@ -10,12 +10,12 @@ public class ObstacleManager : MonoBehaviour
     public float mapWidth = 20f;
     public float mapDepth = 20f;
     public float minDistanceBetweenObstacles = 1.5f;
-    public float minDistanceFromSpawnPoints = 2f; // Distanza minima da SpawnPoint e Destination
+    public float minDistanceFromSpawnPoints = 2f;
     public string obstacleLayerName = "Obstacle";
     public string groundLayerName = "Ground";
     public float raycastHeight = 10f;
-    public float obstacleRadius = 1f; // Raggio/dimensione approssimativa dell'ostacolo
-    public bool autoCalculateObstacleSize = true; // Calcola automaticamente la dimensione
+    public float obstacleRadius = 1f; 
+    public bool autoCalculateObstacleSize = true; 
 
     private List<Vector3> placedPositions = new List<Vector3>();
     private int obstacleLayer;
@@ -24,6 +24,7 @@ public class ObstacleManager : MonoBehaviour
 
     void Start()
     {
+        // Initializes the obstacle layer and ground layer
         obstacleLayer = LayerMask.NameToLayer(obstacleLayerName);
         if (obstacleLayer == -1)
         {
@@ -38,7 +39,7 @@ public class ObstacleManager : MonoBehaviour
             return;
         }
 
-        // Calcola automaticamente la dimensione dell'ostacolo se richiesto
+        // Calculates the obstacle size if enabled
         if (autoCalculateObstacleSize && obstaclePrefab != null)
         {
             CalculateObstacleSize();
@@ -47,6 +48,7 @@ public class ObstacleManager : MonoBehaviour
         ReplaceObstacles();
     }
 
+    // Method to replace existing obstacles with new ones
     public void ReplaceObstacles()
     {
         RemoveExistingObstacles();
@@ -62,11 +64,12 @@ public class ObstacleManager : MonoBehaviour
                 raycastHeight,
                 Random.Range(-mapDepth / 2f, mapDepth / 2f)
             );
-
+            // Perform a raycast downwards to find a valid position on the ground
             if (Physics.Raycast(randomXZ, Vector3.down, out RaycastHit hit, raycastHeight * 2, groundLayer))
             {
                 Vector3 spawnPos = hit.point;
 
+                // Check if the position is far enough from other obstacles and not too close to spawn points or destinations
                 if (IsFarEnoughFromOthers(spawnPos) && !IsNearSpawnPointOrDestination(spawnPos))
                 {
                     Quaternion rotation = Quaternion.Euler(0f, Random.value < 0.5f ? 0f : 90f, 0f);
@@ -84,6 +87,7 @@ public class ObstacleManager : MonoBehaviour
         StartCoroutine(DelayedUpdate());
     }
 
+    // Coroutine to delay the NavMesh update
     IEnumerator DelayedUpdate()
     {
         yield return new WaitForSeconds(0.2f);
@@ -94,6 +98,7 @@ public class ObstacleManager : MonoBehaviour
         AstarPath.active.Scan();
     }
 
+    // Checks if the position is far enough from other obstacles
     private bool IsFarEnoughFromOthers(Vector3 pos)
     {
         foreach (var existing in placedPositions)
@@ -106,15 +111,15 @@ public class ObstacleManager : MonoBehaviour
 
     private bool IsNearSpawnPointOrDestination(Vector3 position)
     {
-        // Usa il raggio dell'ostacolo per il controllo di sovrapposizione
+        // Uses the effective radius which is the obstacle radius
         float effectiveRadius = obstacleRadius;
 
-        // Controlla se ci sono collider nell'area che sarà occupata dall'ostacolo
+        // Check for overlapping colliders within the effective radius
         Collider[] overlapping = Physics.OverlapSphere(position, effectiveRadius);
 
         foreach (var collider in overlapping)
         {
-            // Controlla se l'oggetto ha tag SpawnPoint o Destination
+            // Check if the collider is on the obstacle layer
             if (collider.CompareTag("SpawnPoint") || collider.CompareTag("Destination"))
             {
                 //Debug.Log($"Ostacolo bloccato: sovrapposizione diretta con {collider.name} ({collider.tag})");
@@ -122,39 +127,39 @@ public class ObstacleManager : MonoBehaviour
             }
         }
 
-        // Controllo aggiuntivo per distanza minima (centro-centro + raggio ostacolo + raggio sicurezza)
         GameObject[] spawnPoints = GameObject.FindGameObjectsWithTag("SpawnPoint");
         GameObject[] destinations = GameObject.FindGameObjectsWithTag("Destination");
 
+        // Check distance from spawn points
         foreach (var spawnPoint in spawnPoints)
         {
             float requiredDistance = minDistanceFromSpawnPoints + effectiveRadius;
 
-            // Aggiungi anche il raggio dell'oggetto SpawnPoint/Destination se ha un collider
+            // Adds the radius of the spawn point's collider if it exists
             Collider spawnCollider = spawnPoint.GetComponent<Collider>();
             if (spawnCollider != null)
             {
                 requiredDistance += GetColliderRadius(spawnCollider);
             }
-
+            // Check if the position is too close to the spawn point
             if (Vector3.Distance(position, spawnPoint.transform.position) < requiredDistance)
             {
                 Debug.Log($"Ostacolo bloccato: troppo vicino a SpawnPoint {spawnPoint.name}");
                 return true;
             }
         }
-
+        // Check distance from destinations
         foreach (var destination in destinations)
         {
             float requiredDistance = minDistanceFromSpawnPoints + effectiveRadius;
 
-            // Aggiungi anche il raggio dell'oggetto Destination se ha un collider
+            // Adds the radius of the destination's collider if it exists
             Collider destCollider = destination.GetComponent<Collider>();
             if (destCollider != null)
             {
                 requiredDistance += GetColliderRadius(destCollider);
             }
-
+            // Check if the position is too close to the destination
             if (Vector3.Distance(position, destination.transform.position) < requiredDistance)
             {
                 Debug.Log($"Ostacolo bloccato: troppo vicino a Destination {destination.name}");
@@ -165,6 +170,7 @@ public class ObstacleManager : MonoBehaviour
         return false;
     }
 
+    // Utility method to get the radius of a collider
     private float GetColliderRadius(Collider collider)
     {
         if (collider is SphereCollider sphere)
@@ -183,7 +189,7 @@ public class ObstacleManager : MonoBehaviour
         }
         else
         {
-            // Per altri tipi di collider, usa i bounds
+            // For other collider types, use the bounds size
             return Mathf.Max(collider.bounds.size.x, collider.bounds.size.z) * 0.5f;
         }
     }
@@ -192,7 +198,7 @@ public class ObstacleManager : MonoBehaviour
     {
         if (obstaclePrefab == null) return;
 
-        // Prova a ottenere il collider dal prefab
+        // Try to get the collider radius from the prefab
         Collider prefabCollider = obstaclePrefab.GetComponent<Collider>();
         if (prefabCollider != null)
         {
@@ -201,8 +207,9 @@ public class ObstacleManager : MonoBehaviour
         }
         else
         {
-            // Se non c'è collider, prova con il renderer
+            // If no collider is found, try to use the renderer bounds
             Renderer prefabRenderer = obstaclePrefab.GetComponent<Renderer>();
+
             if (prefabRenderer != null)
             {
                 Vector3 size = prefabRenderer.bounds.size;
@@ -216,6 +223,7 @@ public class ObstacleManager : MonoBehaviour
         }
     }
 
+    // Removes existing obstacles from the scene
     private void RemoveExistingObstacles()
     {
         GameObject[] allObjects = FindObjectsOfType<GameObject>();

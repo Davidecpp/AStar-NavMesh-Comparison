@@ -27,6 +27,7 @@ public class PathVisibilityController : MonoBehaviour
         pathToggle.onValueChanged.AddListener(UpdateAllPaths);
     }
 
+    // Method to register a visualizer
     public void RegisterVisualizer(PathVisualizer visualizer)
     {
         if (!visualizers.Contains(visualizer))
@@ -40,6 +41,7 @@ public class PathVisibilityController : MonoBehaviour
         visualizers.Remove(visualizer);
     }
 
+    // Method to update visibility of all paths
     void UpdateAllPaths(bool show)
     {
         foreach (var visualizer in visualizers)

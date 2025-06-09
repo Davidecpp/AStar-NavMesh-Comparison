@@ -14,7 +14,7 @@ public class FPSCounter : MonoBehaviour
 
     void Update()
     {
-        // Ignora momento iniziale
+        // Ignore initial frames to avoid spikes in FPS calculation
         if (firstFrame <= 20)
         {
             firstFrame++;
@@ -27,7 +27,7 @@ public class FPSCounter : MonoBehaviour
         {
             float fps = 1.0f / deltaTime;
 
-            // Aggiorna i valori di FPS massimo e minimo
+            // Update max and min FPS
             if (fps > maxFPS) maxFPS = fps;
             if (fps < minFPS) minFPS = fps;
 

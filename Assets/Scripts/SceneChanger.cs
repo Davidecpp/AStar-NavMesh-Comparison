@@ -11,6 +11,7 @@ public class SceneChanger : MonoBehaviour
     }
     void Update()
     {
+        // Check for Escape key press to reload the current scene
         if (keyboard.escapeKey.wasPressedThisFrame)
         {
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);

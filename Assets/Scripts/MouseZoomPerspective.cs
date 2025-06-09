@@ -59,6 +59,7 @@ public class CameraZoom : MonoBehaviour
         }
     }
 
+    // Handle zoom input from the mouse scroll wheel
     void HandleZoomInput()
     {
         Vector2 scrollInput = Mouse.current.scroll.ReadValue();
@@ -68,7 +69,7 @@ public class CameraZoom : MonoBehaviour
             float normalizedScroll = Mathf.Sign(scrollInput.y);
             float previousZoom = targetZoom;
 
-            // Calcola il nuovo zoom target
+            // Calculate the new target zoom based on scroll input
             targetZoom -= normalizedScroll * zoomSpeed;
             targetZoom = Mathf.Clamp(targetZoom, minZoom, maxZoom);
 
@@ -76,7 +77,7 @@ public class CameraZoom : MonoBehaviour
             {
                 Vector2 mouseScreenPos = Mouse.current.position.ReadValue();
 
-                // Converti la posizione del mouse in un raggio dal mondo
+                // Converts mouse position to a ray in the world
                 Ray mouseRay = cam.ScreenPointToRay(mouseScreenPos);
 
                 Vector3 mouseWorldPos = GetMouseWorldPosition(mouseRay);
@@ -93,7 +94,7 @@ public class CameraZoom : MonoBehaviour
     {
         if (!enableMiddleMouseDrag) return;
 
-        // Controlla se il middle mouse button è premuto
+        // Check if the middle mouse button is pressed or released
         if (Mouse.current.middleButton.wasPressedThisFrame)
         {
             isMiddleMousePressed = true;
@@ -104,16 +105,15 @@ public class CameraZoom : MonoBehaviour
             isMiddleMousePressed = false;
         }
 
-        // Se il middle mouse è premuto, calcola il movimento
+        // If the middle mouse is pressed, calculate the movement
         if (isMiddleMousePressed)
         {
             Vector2 currentMousePosition = Mouse.current.position.ReadValue();
             Vector2 mouseDelta = currentMousePosition - lastMousePosition;
 
-            // Converti il movimento del mouse in movimento del mondo
+            // Converts mouse delta to world delta
             Vector3 worldDelta = ScreenToWorldDelta(mouseDelta);
 
-            // Applica l'inversione se necessario
             if (invertDragX) worldDelta.x = -worldDelta.x;
             if (invertDragY) worldDelta.z = -worldDelta.z;
 
@@ -122,10 +122,10 @@ public class CameraZoom : MonoBehaviour
         }
     }
 
-    // Converte il delta del mouse in coordinate del mondo
+    // Converts the mouse delta in screen space to a delta in world space.
     Vector3 ScreenToWorldDelta(Vector2 screenDelta)
     {
-        // Calcola il fattore di scala basato sulla distanza della camera e FOV
+        // Calculate the scale factor based on camera distance and FOV
         float distance = Mathf.Abs(transform.position.y);
         float frustumHeight = 2.0f * distance * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
         float frustumWidth = frustumHeight * cam.aspect;
@@ -135,7 +135,7 @@ public class CameraZoom : MonoBehaviour
             screenDelta.y / Screen.height
         );
 
-        // Converti in coordinate del mondo
+        // Converts normalized delta to world space
         Vector3 worldDelta = new Vector3(
             normalizedDelta.x * frustumWidth,
             0f,
@@ -145,7 +145,7 @@ public class CameraZoom : MonoBehaviour
         return worldDelta;
     }
 
-    // Calcola la posizione del mouse nel mondo
+    // Calculates the world position based on the mouse ray and a projection distance.
     Vector3 GetMouseWorldPosition(Ray mouseRay)
     {
         float projectionDistance = 10f;
@@ -187,7 +187,7 @@ public class CameraZoom : MonoBehaviour
         targetPosition = newPosition;
     }
 
-    // Metodi pubblici per controllare il middle mouse drag
+    // For enabling/disabling middle mouse drag and setting sensitivity
     public void SetMiddleMouseDragEnabled(bool enabled)
     {
         enableMiddleMouseDrag = enabled;

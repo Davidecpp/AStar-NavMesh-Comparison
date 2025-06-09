@@ -11,33 +11,32 @@ public class NPCAvoidance : MonoBehaviour
     [SerializeField] private LayerMask avoidanceLayers = -1;
 
     [Header("Destination Settings")]
-    [SerializeField] private float destinationRadius = 2f; // Aumentato da 1f a 2f
-    [SerializeField] private float stopDistance = 1.5f; // Nuova distanza per fermarsi completamente
+    [SerializeField] private float destinationRadius = 2f;
+    [SerializeField] private float stopDistance = 1.5f; 
     [SerializeField] private bool disableCollisionAtDestination = true;
-    [SerializeField] private float destinationDamping = 0.8f; // Fattore di rallentamento vicino alla destinazione
+    [SerializeField] private float destinationDamping = 0.8f;
 
-    // Componenti cached
+    // Cached components
     private AIPath aiPath;
     private Rigidbody rb;
     private Collider col;
 
-    // Stato pubblico per il manager
     public Vector3 CachedPosition { get; private set; }
     public Vector3 CachedDestination { get; private set; }
     public float AvoidanceRadius => avoidanceRadius;
     public bool HasReachedDestination { get; private set; }
 
-    // Stato interno
+    // Internal state
     private Vector3 avoidanceDirection;
     private bool wasAtDestination;
     private float cachedDistanceToDestination;
-    private bool isNearDestination; // Nuovo flag per prossimit�
-    private float timeAtDestination = 0f; // Timer per stabilizzare la destinazione
+    private bool isNearDestination; 
+    private float timeAtDestination = 0f;
 
-    // Costanti
+    // Costants
     private const float MIN_DISTANCE = 0.1f;
     private const float MIN_AVOIDANCE_MAGNITUDE = 0.1f;
-    private const float DESTINATION_STABILIZATION_TIME = 0.5f; // Tempo per considerare stabilmente arrivato
+    private const float DESTINATION_STABILIZATION_TIME = 0.5f; 
     private static readonly Vector3 UP_VECTOR = Vector3.up;
 
     #region Unity Lifecycle
@@ -50,7 +49,7 @@ public class NPCAvoidance : MonoBehaviour
 
     private void Start()
     {
-        // Registra nel manager centralizzato invece di usare FixedUpdate
+        // Registers NPC in the NPCAvoidanceManager
         if (NPCAvoidanceManager.Instance != null)
         {
             NPCAvoidanceManager.Instance.RegisterNPC(this);
@@ -73,6 +72,7 @@ public class NPCAvoidance : MonoBehaviour
 
     #region Initialization
 
+    // Caches required components and initializes state variables
     private void CacheComponents()
     {
         aiPath = GetComponent<AIPath>();
@@ -82,11 +82,10 @@ public class NPCAvoidance : MonoBehaviour
         if (aiPath == null) Debug.LogWarning($"AIPath component missing on {gameObject.name}");
         if (rb == null) Debug.LogWarning($"Rigidbody component missing on {gameObject.name}");
 
-        // Configura AIPath per lavorare meglio con il nostro sistema
         if (aiPath != null)
         {
-            aiPath.endReachedDistance = stopDistance; // Sincronizza con la nostra logica
-            aiPath.slowdownDistance = destinationRadius; // Inizia a rallentare prima
+            aiPath.endReachedDistance = stopDistance; 
+            aiPath.slowdownDistance = destinationRadius; 
         }
     }
 
@@ -122,28 +121,26 @@ public class NPCAvoidance : MonoBehaviour
         wasAtDestination = HasReachedDestination;
         bool wasNearDestination = isNearDestination;
 
-        // Calcola se � vicino alla destinazione
+        // Calculates the distance to the destination
         isNearDestination = cachedDistanceToDestination <= destinationRadius;
 
-        // Calcola se ha raggiunto la destinazione (pi� stretto)
+        // Check if the NPC is at the destination
         bool reachedByDistance = cachedDistanceToDestination <= stopDistance;
         bool reachedByAIPath = aiPath.reachedDestination || aiPath.reachedEndOfPath;
 
-        // Logica per stabilizzare l'arrivo alla destinazione
         if (reachedByDistance || reachedByAIPath)
         {
             timeAtDestination += Time.deltaTime;
 
-            // Considera raggiunta solo dopo un po' di tempo per evitare oscillazioni
+            // Reached destination if stabilized for a certain time
             if (timeAtDestination >= DESTINATION_STABILIZATION_TIME)
             {
                 HasReachedDestination = true;
 
-                // Ferma completamente l'AIPath quando arriva
+                // Stops movement and disables collision if configured
                 if (aiPath != null)
                 {
                     aiPath.canMove = false;
-                    // Ferma completamente il rigidbody
                     if (rb != null)
                     {
                         rb.linearVelocity = Vector3.zero;
@@ -157,14 +154,14 @@ public class NPCAvoidance : MonoBehaviour
             timeAtDestination = 0f;
             HasReachedDestination = false;
 
-            // Riattiva il movimento se non � pi� alla destinazione
+            // Reactivate movement if it was previously stopped
             if (aiPath != null && !aiPath.canMove)
             {
                 aiPath.canMove = true;
             }
         }
 
-        // Aggiorna collision state solo quando cambia lo stato
+        // Updates the collision state based on the new status
         if (wasAtDestination != HasReachedDestination && disableCollisionAtDestination)
         {
             UpdateCollisionState();
@@ -173,13 +170,11 @@ public class NPCAvoidance : MonoBehaviour
 
     public bool ShouldCalculateAvoidance()
     {
-        // Non calcolare avoidance se � fermo alla destinazione
+        // Don't calculate avoidance if the NPC is not moving or has reached the destination
         if (HasReachedDestination && disableCollisionAtDestination)
         {
             return false;
         }
-
-        // Riduce l'avoidance quando � vicino alla destinazione
         return true;
     }
 
@@ -187,7 +182,7 @@ public class NPCAvoidance : MonoBehaviour
     {
         avoidanceDirection = Vector3.zero;
 
-        // Se � alla destinazione, non applicare avoidance
+        // If the NPC has reached the destination and collision is disabled, skip avoidance
         if (HasReachedDestination && disableCollisionAtDestination)
         {
             return;
@@ -197,7 +192,7 @@ public class NPCAvoidance : MonoBehaviour
         {
             if (neighbor == null || neighbor == this) continue;
 
-            // Ignora NPC che hanno raggiunto la destinazione
+            // Ignores neighbors that are not valid for avoidance
             if (neighbor.HasReachedDestination && neighbor.disableCollisionAtDestination)
                 continue;
 
@@ -208,7 +203,7 @@ public class NPCAvoidance : MonoBehaviour
             {
                 float forceMagnitude = (avoidanceRadius - distance) / avoidanceRadius;
 
-                // Riduce la forza se � vicino alla destinazione
+                // Reduces the force if the neighbor is near the destination
                 if (isNearDestination)
                 {
                     float destinationFactor = (cachedDistanceToDestination / destinationRadius);
@@ -219,14 +214,11 @@ public class NPCAvoidance : MonoBehaviour
                 avoidanceDirection += directionAway * forceMagnitude;
             }
         }
-
-        // Normalizza se necessario
         if (avoidanceDirection.sqrMagnitude > 1f)
         {
             avoidanceDirection.Normalize();
         }
 
-        // Applica forza se necessario
         ApplyAvoidanceForce();
     }
 
@@ -243,13 +235,13 @@ public class NPCAvoidance : MonoBehaviour
     {
         if (col == null || rb == null) return;
 
+        // Deactivate collision if the NPC has reached the destination and collision is disabled
         if (HasReachedDestination)
         {
             col.isTrigger = true;
             rb.isKinematic = true;
             rb.detectCollisions = false;
 
-            // Ferma completamente il movimento
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
@@ -266,13 +258,13 @@ public class NPCAvoidance : MonoBehaviour
         if (rb == null || avoidanceDirection.sqrMagnitude < MIN_AVOIDANCE_MAGNITUDE * MIN_AVOIDANCE_MAGNITUDE)
             return;
 
-        // Non applicare forza se � fermo alla destinazione
+        // Don't apply avoidance if the NPC has reached the destination and collision is disabled
         if (HasReachedDestination && disableCollisionAtDestination)
             return;
 
         Vector3 avoidanceVelocity = avoidanceDirection * avoidanceForce;
 
-        // Riduce la forza vicino alla destinazione
+        // Reduce the avoidance force if the NPC is near the destination
         if (isNearDestination)
         {
             float destinationFactor = Mathf.Clamp01(cachedDistanceToDestination / destinationRadius);
@@ -288,6 +280,7 @@ public class NPCAvoidance : MonoBehaviour
         LimitHorizontalVelocity();
     }
 
+    // Limits the horizontal velocity of the NPC to prevent excessive speed
     private void LimitHorizontalVelocity()
     {
         if (rb == null) return;
@@ -297,13 +290,14 @@ public class NPCAvoidance : MonoBehaviour
 
         float maxSpeed = maxAvoidanceSpeed;
 
-        // Riduce velocit� massima vicino alla destinazione
+        // If the NPC is near the destination, reduce the speed
         if (isNearDestination)
         {
             float destinationFactor = Mathf.Clamp01(cachedDistanceToDestination / destinationRadius);
             maxSpeed *= destinationFactor * destinationDamping;
         }
 
+        // Limit the horizontal velocity to the maximum speed
         if (horizontalVelocity.sqrMagnitude > maxSpeed * maxSpeed)
         {
             horizontalVelocity = horizontalVelocity.normalized * maxSpeed;
@@ -328,9 +322,8 @@ public class NPCAvoidance : MonoBehaviour
     public void SetDestinationRadius(float radius)
     {
         destinationRadius = Mathf.Max(0.5f, radius);
-        stopDistance = destinationRadius * 0.75f; // Mantieni stopDistance pi� piccolo
+        stopDistance = destinationRadius * 0.75f;
 
-        // Aggiorna anche AIPath
         if (aiPath != null)
         {
             aiPath.endReachedDistance = stopDistance;
@@ -344,6 +337,7 @@ public class NPCAvoidance : MonoBehaviour
         CheckDestinationStatus();
     }
 
+    // Forces the NPC to stop immediately, setting it as reached destination
     public void ForceStop()
     {
         HasReachedDestination = true;
@@ -373,32 +367,30 @@ public class NPCAvoidance : MonoBehaviour
 
         Vector3 position = transform.position;
 
-        // Raggio di evitamento
+        // Avoidance radius
         Gizmos.color = HasReachedDestination ? Color.green : Color.yellow;
         Gizmos.DrawWireSphere(position, avoidanceRadius);
 
-        // Raggio di destinazione (ora pi� visibile)
+        // Destination radius 
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(position, destinationRadius);
 
-        // Raggio di stop (pi� piccolo, rosso)
+        // Stop distance
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(position, stopDistance);
 
-        // Direzione di evitamento
         if (avoidanceDirection.sqrMagnitude > MIN_AVOIDANCE_MAGNITUDE * MIN_AVOIDANCE_MAGNITUDE)
         {
             Gizmos.color = Color.red;
             Gizmos.DrawRay(position, avoidanceDirection * 2f);
         }
 
-        // Linea verso destinazione
         if (aiPath != null && CachedDestination != Vector3.zero)
         {
             Gizmos.color = HasReachedDestination ? Color.green : Color.cyan;
             Gizmos.DrawLine(position, CachedDestination);
 
-            // Mostra distanza alla destinazione
+            // Distance to destination
             Gizmos.color = Color.magenta;
             Gizmos.DrawWireSphere(CachedDestination, destinationRadius);
         }

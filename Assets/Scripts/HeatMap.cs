@@ -20,7 +20,7 @@ public class Heatmap : MonoBehaviour
 
     Keyboard Keyboard;
 
-    public Vector2 originOffset = new Vector2(0, 0); // Offset per X e Z
+    public Vector2 originOffset = new Vector2(0, 0); // Offset for X e Z
     public RawImage heatmapDisplay;
 
     private float heatmapUpdateInterval = 0.2f;
@@ -40,6 +40,7 @@ public class Heatmap : MonoBehaviour
 
     void Start()
     {
+        // Initialize heatmap arrays
         heatmap = new int[width, height];
         navMeshHeatmap = new int[width, height];
         astarHeatmap = new int[width, height];
@@ -57,7 +58,7 @@ public class Heatmap : MonoBehaviour
         planeRenderer.material = heatmapMaterial;
         planeRenderer.material.mainTexture = heatmapTexture;
 
-        // Scala il plane per coprire l'intera area della heatmap
+        // Scale the plane to cover the entire heatmap area
         heatmapPlane.transform.localScale = new Vector3(
             width * cellSize / 10f,
             1f,
@@ -78,7 +79,7 @@ public class Heatmap : MonoBehaviour
 
     void Update()
     {
-        // Spazio per toggle heatmap
+        // Space for toggling heatmap visibility
         if (Keyboard.spaceKey.wasPressedThisFrame)
         {
             heatmapVisible = !heatmapVisible;
@@ -90,7 +91,7 @@ public class Heatmap : MonoBehaviour
                 UpdateHeatmapTexture();
         }
 
-        // Cambia tipo di heatmap con tasti Q, W, E
+        // Change heatmap type with Q, W, E keys
         if (Keyboard.qKey.wasPressedThisFrame)
         {
             SetHeatmapAll();
@@ -104,7 +105,7 @@ public class Heatmap : MonoBehaviour
             SetHeatmapAStar();
         }
 
-        // Aggiornamento periodico della texture, se visibile
+        // Periodic update of the heatmap texture if visible
         if (heatmapVisible)
         {
             heatmapUpdateTimer += Time.deltaTime;
@@ -116,7 +117,7 @@ public class Heatmap : MonoBehaviour
         }
     }
 
-    // Registra una posizione nella heatmap
+    // This method registers a position in the heatmap based on the world position and the type of heatmap (NavMesh, AStar, or All).
     public void RegisterPosition(Vector3 worldPosition, HeatmapType type)
     {
         int centerX = Mathf.FloorToInt((worldPosition.x - originOffset.x) / cellSize);
@@ -132,14 +133,14 @@ public class Heatmap : MonoBehaviour
                 int px = centerX + x;
                 int py = centerY + y;
 
-                // Controlla se le coordinate sono all'interno dei limiti della heatmap
+                // Check if the coordinates are within the bounds of the heatmap
                 if (px >= 0 && px < width && py >= 0 && py < height)
                 {
                     float distance = Mathf.Sqrt(x * x + y * y);
                     float intensity = Mathf.Clamp01(1 - (distance / (radius + 0.1f)));
                     int value = Mathf.RoundToInt(maxIntensity * intensity * 10f);
 
-                    // Aggiungi il valore alla heatmap corrispondente
+                    // Add the value to the corresponding heatmap
                     switch (type)
                     {
                         case HeatmapType.NavMesh:
@@ -158,13 +159,12 @@ public class Heatmap : MonoBehaviour
         }
     }
 
-
-    // Aggiorna la texture della heatmap in base ai dati registrati
+    // Update the heatmap texture based on the registered data
     public void UpdateHeatmapTexture()
     {
         int[,] targetHeatmap;
 
-        // Determina quale heatmap usare in base al tipo corrente
+        // Determines which heatmap to use based on the current type
         switch (currentHeatmapType)
         {
             case HeatmapType.NavMesh:
@@ -186,7 +186,7 @@ public class Heatmap : MonoBehaviour
         int max = targetHeatmap.Cast<int>().Max();
         if (max == 0) max = 1;
 
-        // Aggiorna i pixel della texture in base ai valori della heatmap
+        // Update the pixels of the texture based on the heatmap values
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
@@ -200,7 +200,8 @@ public class Heatmap : MonoBehaviour
         heatmapTexture.Apply();
     }
 
-    // Imposta il tipo di heatmap corrente e aggiorna la texture
+ 
+    // Sets the current heatmap type and updates the texture accordingly.
     public void SetHeatmapAll()
     {
         currentHeatmapType = HeatmapType.All;
@@ -229,6 +230,7 @@ public class Heatmap : MonoBehaviour
     }
 
 
+    // Returns a color based on the heatmap value normalized between 0 and 1.
     private Color GetHeatmapColor(float t)
     {
         t = Mathf.Clamp01(t);
@@ -247,8 +249,8 @@ public class Heatmap : MonoBehaviour
 
     private void UpdateButtonHighlights()
     {
-        Color activeColor = Color.white;     // evidenziato
-        Color inactiveColor = Color.gray;    // disattivo
+        Color activeColor = Color.white;     // Highlight active button
+        Color inactiveColor = Color.gray;    // Deactivate inactive buttons
 
         if (allButton != null)
             allButton.image.color = (currentHeatmapType == HeatmapType.All) ? activeColor : inactiveColor;

@@ -3,33 +3,29 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 
-/// <summary>
-/// Manager ultra-ottimizzato per evitamento NPC
-/// Riduce drasticamente i picchi di performance
-/// </summary>
 public class NPCAvoidanceManager : MonoBehaviour
 {
     public static NPCAvoidanceManager Instance { get; private set; }
 
     [Header("Performance Settings")]
-    [SerializeField] private int npcProcessedPerFrame = 5; // Ridotto da 20 a 5
-    [SerializeField] private float updateInterval = 0.2f; // Aumentato da 0.1f
-    [SerializeField] private int maxNPCsToProcess = 100; // Limite massimo
+    [SerializeField] private int npcProcessedPerFrame = 5; 
+    [SerializeField] private float updateInterval = 0.2f; 
+    [SerializeField] private int maxNPCsToProcess = 100; 
 
     [Header("Spatial Partitioning")]
-    [SerializeField] private float cellSize = 15f; // Aumentato per celle più grandi
-    [SerializeField] private int maxNPCsPerCell = 30; // Ridotto da 50
+    [SerializeField] private float cellSize = 15f; 
+    [SerializeField] private int maxNPCsPerCell = 30; 
 
     [Header("Advanced Optimizations")]
     [SerializeField] private bool useLODSystem = true;
     [SerializeField] private float highDetailDistance = 20f;
     [SerializeField] private float mediumDetailDistance = 50f;
 
-    // Collections ottimizzate
+    // Collections
     private readonly List<NPCAvoidance> allNPCs = new List<NPCAvoidance>(1000);
     private readonly Dictionary<Vector2Int, List<NPCAvoidance>> spatialGrid = new Dictionary<Vector2Int, List<NPCAvoidance>>();
     
-    // Pooling avanzato
+    // Pooling
     private readonly Stack<List<NPCAvoidance>> listPool = new Stack<List<NPCAvoidance>>();
     private readonly Stack<List<Vector2Int>> cellPool = new Stack<List<Vector2Int>>();
 
@@ -110,9 +106,7 @@ public class NPCAvoidanceManager : MonoBehaviour
         RemoveFromSpatialGrid(npc);
     }
 
-    /// <summary>
-    /// Coroutine principale ultra-ottimizzata
-    /// </summary>
+    // Coroutne for processing NPCs
     private IEnumerator ProcessNPCsCoroutine()
     {
         while (true)
@@ -124,7 +118,7 @@ public class NPCAvoidanceManager : MonoBehaviour
                 yield return StartCoroutine(ProcessBatchOptimized());
             }
 
-            // Adatta frequenza in base alle performance
+            // Adapt processing rate based on performance
             float frameTime = (Time.realtimeSinceStartup - frameStartTime) * 1000f;
             frameTimeAccumulator += frameTime;
             frameCount++;
@@ -141,14 +135,12 @@ public class NPCAvoidanceManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Processing batch ultra-ottimizzato con LOD
-    /// </summary>
+    // Process a batch of NPCs with optimizations
     private IEnumerator ProcessBatchOptimized()
     {
         isProcessing = true;
 
-        // Update LOD groups solo ogni tanto
+        // Update LOD groups if using LOD system
         if (Time.time - lastFullUpdate > 1f)
         {
             UpdateLODGroups();
@@ -159,15 +151,13 @@ public class NPCAvoidanceManager : MonoBehaviour
         // Update spatial grid incrementale
         yield return StartCoroutine(UpdateSpatialGridIncremental());
 
-        // Process NPCs con priorità LOD
+        // Process NPCs with LOD
         yield return StartCoroutine(ProcessNPCsByLOD());
 
         isProcessing = false;
     }
 
-    /// <summary>
-    /// Update LOD groups basato su distanza dal player
-    /// </summary>
+    // Update LOD groups based on player position
     private void UpdateLODGroups()
     {
         if (playerTransform == null) return;
@@ -200,16 +190,13 @@ public class NPCAvoidanceManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Update spatial grid in modo incrementale
-    /// </summary>
     private IEnumerator UpdateSpatialGridIncremental()
     {
-        // Clear solo celle che servono
+        // Clear spatial grid
         var activeCells = cellPool.Count > 0 ? cellPool.Pop() : new List<Vector2Int>();
         activeCells.Clear();
 
-        // Trova celle attive
+        // Find active cells
         foreach (var npc in allNPCs)
         {
             if (npc != null)
@@ -222,7 +209,7 @@ public class NPCAvoidanceManager : MonoBehaviour
             }
         }
 
-        // Clear solo celle attive
+        // Clear active cells in the spatial grid
         foreach (var cell in activeCells)
         {
             if (spatialGrid.TryGetValue(cell, out var cellList))
@@ -233,7 +220,7 @@ public class NPCAvoidanceManager : MonoBehaviour
 
         yield return null;
 
-        // Re-populate celle attive
+        // Re-populate active cells
         int processed = 0;
         foreach (var npc in allNPCs)
         {
@@ -253,7 +240,7 @@ public class NPCAvoidanceManager : MonoBehaviour
                 }
 
                 processed++;
-                if (processed % 20 == 0) // Yield ogni 20 NPC
+                if (processed % 20 == 0) // Yield every 20 NPC
                 {
                     yield return null;
                 }
@@ -263,14 +250,10 @@ public class NPCAvoidanceManager : MonoBehaviour
         cellPool.Push(activeCells);
     }
 
-    /// <summary>
-    /// Process NPCs con priorità LOD
-    /// </summary>
     private IEnumerator ProcessNPCsByLOD()
     {
         int processed = 0;
-
-        // High detail - process tutti
+        // High detail - process 100%
         foreach (var npc in highDetailNPCs)
         {
             if (ProcessSingleNPCOptimized(npc))
@@ -313,16 +296,14 @@ public class NPCAvoidanceManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Process singolo NPC ottimizzato
-    /// </summary>
+    // Process a single NPC with optimizations
     private bool ProcessSingleNPCOptimized(NPCAvoidance npc)
     {
         if (npc == null || !npc.isActiveAndEnabled) return false;
 
         npc.UpdateCachedValues();
         npc.CheckDestinationStatus();
-
+ 
         if (npc.ShouldCalculateAvoidance())
         {
             CalculateAvoidanceOptimized(npc);
@@ -331,25 +312,20 @@ public class NPCAvoidanceManager : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Calcolo avoidance ottimizzato con sqrMagnitude
-    /// </summary>
     private void CalculateAvoidanceOptimized(NPCAvoidance npc)
     {
         var neighbors = GetNearbyNPCsOptimized(npc);
         npc.CalculateAvoidanceFromNeighbors(neighbors);
     }
 
-    /// <summary>
-    /// Get nearby NPCs ultra-ottimizzato
-    /// </summary>
+    // Get nearby NPCs using spatial partitioning
     private List<NPCAvoidance> GetNearbyNPCsOptimized(NPCAvoidance npc)
     {
         var nearbyNPCs = new List<NPCAvoidance>();
         var npcCell = WorldToGrid(npc.CachedPosition);
         float avoidanceRadiusSqr = npc.AvoidanceRadius * npc.AvoidanceRadius;
 
-        // Check solo 3x3 grid attorno all'NPC
+        // Check the 3x3 grid around the NPC's cell
         for (int x = -1; x <= 1; x++)
         {
             for (int z = -1; z <= 1; z++)
@@ -361,7 +337,6 @@ public class NPCAvoidanceManager : MonoBehaviour
                     {
                         if (otherNPC != npc && otherNPC != null)
                         {
-                            // Usa sqrMagnitude per evitare Sqrt()
                             float distanceSqr = (npc.CachedPosition - otherNPC.CachedPosition).sqrMagnitude;
                             if (distanceSqr <= avoidanceRadiusSqr)
                             {
@@ -376,25 +351,23 @@ public class NPCAvoidanceManager : MonoBehaviour
         return nearbyNPCs;
     }
 
-    /// <summary>
-    /// Adatta processing rate in base alle performance
-    /// </summary>
     private void AdaptProcessingRate(float avgFrameTime)
     {
         if (avgFrameTime > MAX_FRAME_TIME)
         {
-            // Performance scarse - riduci carico
+            // Bad performance, reduce load
             npcProcessedPerFrame = Mathf.Max(1, npcProcessedPerFrame - 1);
             updateInterval = Mathf.Min(0.5f, updateInterval + 0.02f);
         }
         else if (avgFrameTime < MAX_FRAME_TIME * 0.7f)
         {
-            // Performance buone - aumenta carico
+            // Good performance, increase load
             npcProcessedPerFrame = Mathf.Min(10, npcProcessedPerFrame + 1);
             updateInterval = Mathf.Max(0.1f, updateInterval - 0.01f);
         }
     }
 
+    // Convert world position to grid cell coordinates
     private Vector2Int WorldToGrid(Vector3 worldPos)
     {
         return new Vector2Int(
@@ -403,6 +376,7 @@ public class NPCAvoidanceManager : MonoBehaviour
         );
     }
 
+    // Remove NPC from spatial grid
     private void RemoveFromSpatialGrid(NPCAvoidance npc)
     {
         if (npc == null) return;

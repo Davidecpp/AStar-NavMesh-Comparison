@@ -1,0 +1,14 @@
+<b>== NPC NavMesh ==</b>
+[NavMesh NPC] NavM_NPC(Clone) - Distanza: 87,74 m, PathTime: 18,35 s, CalcTime: 0,34 ms
+
+<b>Media distanza:</b> 87,74 m
+<b>Media PathTime:</b> 18,35 s
+<b>Media CalcTime:</b> 0,34 ms
+
+<b>== NPC A* ==</b>
+[A* NPC] AStar_NPC(Clone) - Distanza: 86,74 m, PathTime: 17,78 s, CalcTime: 3,65 ms
+
+<b>Media distanza:</b> 86,74 m
+<b>Media PathTime:</b> 17,78 s
+<b>Media CalcTime:</b> 3,65 ms
+

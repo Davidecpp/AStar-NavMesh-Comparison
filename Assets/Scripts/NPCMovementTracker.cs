@@ -11,17 +11,17 @@ public class NPCMovementTracker : MonoBehaviour
     [SerializeField] private float trackingInterval = 0.1f;
     [SerializeField] private float minMovementThreshold = 0.1f;
 
-    // Singleton statico per evitare FindObjectOfType ripetuti
+    // Cache static heatmap manager to avoid multiple searches
     private static Heatmap _cachedHeatmapManager;
     private static bool _heatmapSearched = false;
 
-    // Cache per performance
+    // Cache for performance
     private Transform cachedTransform;
     private Vector3 lastRegisteredPosition;
     private float nextTrackingTime;
     private bool isInitialized = false;
 
-    // Pre-computed hash codes per evitare allocazioni di stringhe
+    // Pre-computed hash codes for heatmap types
     private static readonly int NAVMESH_HASH = "Navmesh".GetHashCode();
     private static readonly int ASTAR_HASH = "AStar".GetHashCode();
 
@@ -30,13 +30,11 @@ public class NPCMovementTracker : MonoBehaviour
         cachedTransform = transform;
         lastRegisteredPosition = cachedTransform.position;
 
-        // Determina il tipo una sola volta in Awake invece che in Start
         DetermineHeatmapType();
     }
 
     void Start()
     {
-        // Inizializzazione molto più veloce
         InitializeHeatmapManager();
 
         if (heatmapManager != null)
@@ -46,7 +44,6 @@ public class NPCMovementTracker : MonoBehaviour
         }
         else
         {
-            // Se non troviamo l'heatmap manager, disabilita questo componente
             enabled = false;
             Debug.LogWarning($"HeatmapManager non trovato per {gameObject.name}! Componente disabilitato.");
         }
@@ -56,7 +53,7 @@ public class NPCMovementTracker : MonoBehaviour
     {
         if (heatmapManager != null) return;
 
-        // Usa cache statica per evitare FindObjectOfType multipli
+        // Uses cached heatmap manager if available
         if (!_heatmapSearched)
         {
             _cachedHeatmapManager = FindObjectOfType<Heatmap>();
@@ -68,7 +65,7 @@ public class NPCMovementTracker : MonoBehaviour
 
     private void DetermineHeatmapType()
     {
-        // Usa hash code invece di Contains() per performance migliori
+        // Uses gameObject name to determine heatmap type
         int nameHash = gameObject.name.GetHashCode();
 
         if (gameObject.name.IndexOf("Navmesh", System.StringComparison.OrdinalIgnoreCase) >= 0)
@@ -79,27 +76,27 @@ public class NPCMovementTracker : MonoBehaviour
         {
             heatmapType = HeatmapType.AStar;
         }
-        // heatmapType rimane All se non specificato
+        // heatmapType remains HeatmapType.All if no specific type is found
     }
 
     void Update()
     {
-        // Early exit ottimizzato
+        // Early exit optimization
         if (!isInitialized || Time.time < nextTrackingTime) return;
 
+        // Check if the position has changed significantly
         Vector3 currentPosition = cachedTransform.position;
         float sqrDistance = (currentPosition - lastRegisteredPosition).sqrMagnitude;
 
+        // Only register position if it exceeds the movement threshold
         if (sqrDistance >= minMovementThreshold * minMovementThreshold)
         {
             RegisterCurrentPosition();
             lastRegisteredPosition = currentPosition;
         }
-
         nextTrackingTime = Time.time + trackingInterval;
     }
 
-    // Metodi pubblici ottimizzati
     public void SetHeatmapType(HeatmapType newType) => heatmapType = newType;
 
     public void ForceRegisterPosition()
@@ -129,7 +126,7 @@ public class NPCMovementTracker : MonoBehaviour
     void OnBecameInvisible() => enabled = false;
     void OnBecameVisible() => enabled = true;
 
-    // Reset cache statica quando necessario (chiamare dal manager principale)
+    // Reset cache and search state
     public static void ResetHeatmapCache()
     {
         _cachedHeatmapManager = null;

@@ -15,7 +15,7 @@ public class MovingObstacle : MonoBehaviour
     public delegate void OnNavMeshUpdated();
     public static event OnNavMeshUpdated NavMeshUpdated;
 
-    public float updateInterval = 2f; // Intervallo di aggiornamento consigliato
+    public float updateInterval = 2f; 
     private float timer = 0f;
     private Vector3 lastPosition;
 
@@ -23,6 +23,7 @@ public class MovingObstacle : MonoBehaviour
 
     void Start()
     {
+        // Initialize start and end positions
         startPosition = transform.position;
         endPosition = startPosition + new Vector3(5f, 0f, 0f);
         lastPosition = transform.position;
@@ -36,7 +37,7 @@ public class MovingObstacle : MonoBehaviour
 
     void Update()
     {
-        // Movimento oscillante tra startPosition ed endPosition
+        // Movement oscillates between startPosition and endPosition
         transform.position = Vector3.Lerp(startPosition, endPosition, Mathf.PingPong(Time.time * speed, 1));
 
         timer += Time.deltaTime;
@@ -51,6 +52,7 @@ public class MovingObstacle : MonoBehaviour
         }
     }
 
+    // Update A* Graph and NavMesh when the obstacle moves
     void UpdateAStarGraph()
     {
         if (AstarPath.active != null && obstacleCollider != null)
