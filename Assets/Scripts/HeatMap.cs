@@ -38,47 +38,114 @@ public class Heatmap : MonoBehaviour
     public Button navMeshButton;
     public Button aStarButton;
 
+    void Awake()
+    {
+        // Inizializza tutto in Awake per garantire che sia pronto prima che altri script lo usino
+        InitializeHeatmaps();
+    }
+
     void Start()
+    {
+        InitializeTexture();
+        InitializeUI();
+        SetupPlane();
+
+        Keyboard = Keyboard.current;
+        SetHeatmapAll();
+
+        // Forza un aggiornamento immediato
+        UpdateHeatmapTexture();
+    }
+
+    void OnEnable()
+    {
+        // Reset del sistema quando il componente viene riattivato
+        if (heatmapTexture != null)
+        {
+            InitializeHeatmaps();
+            UpdateHeatmapTexture();
+        }
+    }
+
+    private void InitializeHeatmaps()
     {
         // Initialize heatmap arrays
         heatmap = new int[width, height];
         navMeshHeatmap = new int[width, height];
         astarHeatmap = new int[width, height];
+    }
+
+    private void InitializeTexture()
+    {
+        // Crea sempre una nuova texture
+        if (heatmapTexture != null)
+        {
+            DestroyImmediate(heatmapTexture);
+        }
 
         heatmapTexture = new Texture2D(width, height);
         heatmapTexture.filterMode = FilterMode.Point;
 
+        // Clear iniziale della texture
+        Color[] clearColors = new Color[width * height];
+        for (int i = 0; i < clearColors.Length; i++)
+        {
+            clearColors[i] = Color.clear;
+        }
+        heatmapTexture.SetPixels(clearColors);
+        heatmapTexture.Apply();
+    }
+
+    private void InitializeUI()
+    {
         if (heatmapDisplay != null)
         {
             heatmapDisplay.texture = heatmapTexture;
             heatmapDisplay.gameObject.SetActive(false);
         }
-
-        planeRenderer = heatmapPlane.GetComponent<Renderer>();
-        planeRenderer.material = heatmapMaterial;
-        planeRenderer.material.mainTexture = heatmapTexture;
-
-        // Scale the plane to cover the entire heatmap area
-        heatmapPlane.transform.localScale = new Vector3(
-            width * cellSize / 10f,
-            1f,
-            height * cellSize / 10f
-        );
-
-        heatmapPlane.transform.position = new Vector3(
-    originOffset.x + (width * cellSize) / 2f,
-    0.1f,
-    originOffset.y + (height * cellSize) / 2f
-);
-
-        heatmapPlane.SetActive(false);
-        Keyboard = Keyboard.current;
-        SetHeatmapAll();
     }
 
+    private void SetupPlane()
+    {
+        if (heatmapPlane != null)
+        {
+            planeRenderer = heatmapPlane.GetComponent<Renderer>();
+
+            if (planeRenderer != null)
+            {
+                // Crea un nuovo materiale per evitare problemi di condivisione
+                if (heatmapMaterial != null)
+                {
+                    planeRenderer.material = new Material(heatmapMaterial);
+                }
+                planeRenderer.material.mainTexture = heatmapTexture;
+            }
+
+            // Scale the plane to cover the entire heatmap area
+            heatmapPlane.transform.localScale = new Vector3(
+                width * cellSize / 10f,
+                1f,
+                height * cellSize / 10f
+            );
+
+            heatmapPlane.transform.position = new Vector3(
+                originOffset.x + (width * cellSize) / 2f,
+                0.1f,
+                originOffset.y + (height * cellSize) / 2f
+            );
+
+            heatmapPlane.SetActive(false);
+        }
+    }
 
     void Update()
     {
+        if (Keyboard == null)
+        {
+            Keyboard = Keyboard.current;
+            return;
+        }
+
         // Space for toggling heatmap visibility
         if (Keyboard.spaceKey.wasPressedThisFrame)
         {
@@ -86,6 +153,9 @@ public class Heatmap : MonoBehaviour
 
             if (heatmapDisplay != null)
                 heatmapDisplay.gameObject.SetActive(heatmapVisible);
+
+            if (heatmapPlane != null)
+                heatmapPlane.SetActive(heatmapVisible);
 
             if (heatmapVisible)
                 UpdateHeatmapTexture();
@@ -120,6 +190,12 @@ public class Heatmap : MonoBehaviour
     // This method registers a position in the heatmap based on the world position and the type of heatmap (NavMesh, AStar, or All).
     public void RegisterPosition(Vector3 worldPosition, HeatmapType type)
     {
+        // Verifica che gli array siano inizializzati
+        if (navMeshHeatmap == null || astarHeatmap == null)
+        {
+            InitializeHeatmaps();
+        }
+
         int centerX = Mathf.FloorToInt((worldPosition.x - originOffset.x) / cellSize);
         int centerY = Mathf.FloorToInt((worldPosition.z - originOffset.y) / cellSize);
 
@@ -162,6 +238,19 @@ public class Heatmap : MonoBehaviour
     // Update the heatmap texture based on the registered data
     public void UpdateHeatmapTexture()
     {
+        // Verifica che la texture esista
+        if (heatmapTexture == null)
+        {
+            InitializeTexture();
+        }
+
+        // Verifica che gli array esistano
+        if (navMeshHeatmap == null || astarHeatmap == null)
+        {
+            InitializeHeatmaps();
+            return;
+        }
+
         int[,] targetHeatmap;
 
         // Determines which heatmap to use based on the current type
@@ -200,7 +289,6 @@ public class Heatmap : MonoBehaviour
         heatmapTexture.Apply();
     }
 
- 
     // Sets the current heatmap type and updates the texture accordingly.
     public void SetHeatmapAll()
     {
@@ -229,6 +317,12 @@ public class Heatmap : MonoBehaviour
         UpdateButtonHighlights();
     }
 
+    // Metodo pubblico per resettare la heatmap
+    public void ClearHeatmap()
+    {
+        InitializeHeatmaps();
+        UpdateHeatmapTexture();
+    }
 
     // Returns a color based on the heatmap value normalized between 0 and 1.
     private Color GetHeatmapColor(float t)
@@ -242,7 +336,7 @@ public class Heatmap : MonoBehaviour
         else if (t < 0.6f)
             return Color.Lerp(Color.green, Color.yellow, (t - 0.4f) / 0.2f); // 0.4 - 0.6
         else if (t < 0.8f)
-            return Color.Lerp(Color.yellow, new Color(1f, 0.5f, 0f), (t - 0.6f) / 0.2f); // 0.6 - 0.8 (arancione)
+            return Color.Lerp(Color.yellow, new Color(1f, 0.5f, 0f), (t - 0.6f) / 0.2f); // 0.6 - 0.8 
         else
             return Color.Lerp(new Color(1f, 0.5f, 0f), Color.red, (t - 0.8f) / 0.2f); // 0.8 - 1.0
     }
@@ -262,4 +356,11 @@ public class Heatmap : MonoBehaviour
             aStarButton.image.color = (currentHeatmapType == HeatmapType.AStar) ? activeColor : inactiveColor;
     }
 
+    void OnDestroy()
+    {
+        if (heatmapTexture != null)
+        {
+            DestroyImmediate(heatmapTexture);
+        }
+    }
 }
