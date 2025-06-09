@@ -602,6 +602,21 @@ public class NPCPhysicsToggleManager : MonoBehaviour
 
     #endregion
 
+    public void SetCollisionState(bool enabled)
+    {
+        // Imposta lo stato nel Toggle se presente (per sincronizzare UI)
+        if (collisionToggle != null)
+        {
+            collisionToggle.isOn = enabled;
+        }
+        else
+        {
+            // Se non c'è Toggle, chiama direttamente il metodo
+            OnToggleChanged(enabled);
+        }
+    }
+
+
     #region Component Setup
 
     private void SetupBoxCollider(ComponentCache cache)

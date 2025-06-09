@@ -12,19 +12,25 @@ public class AStarNPCController : MonoBehaviour
     [SerializeField] private int pathRecalculateFrameInterval = 300;
     [SerializeField] private float movementThreshold = 0.1f;
     [SerializeField] private bool enableDistanceCalculation = true;
-    [SerializeField] private float updateFrequency = 0.5f; 
+    [SerializeField] private float updateFrequency = 0.5f;
+
+    [Header("Destination Settings")]
+    [SerializeField] private float arrivalDistance = 2f; // Distanza per considerare arrivato
+    [SerializeField] private bool stopAtDestination = true; // Ferma completamente alla destinazione
 
     // Cached components
     private Seeker seeker;
     private Animator animator;
     private AIPath aiPath;
     private AStarTimer aStarTimer;
+    private NPCAvoidance npcAvoidance; // Riferimento al sistema di avoidance
 
     // Movement tracking
     private Vector3 lastPosition;
     private float distanceTravelled = 0f;
     private bool isMoving = false;
     private bool isInitialized = false;
+    private bool hasArrivedAtDestination = false;
 
     // Performance optimizations
     private Stopwatch stopwatch;
@@ -40,6 +46,7 @@ public class AStarNPCController : MonoBehaviour
     // Cache per evitare allocazioni
     private Vector3 cachedVelocity;
     private float cachedSpeed;
+    private float distanceToTarget;
 
     void Awake()
     {
@@ -56,10 +63,18 @@ public class AStarNPCController : MonoBehaviour
         aiPath = GetComponent<AIPath>();
         animator = GetComponent<Animator>();
         aStarTimer = GetComponent<AStarTimer>();
+        npcAvoidance = GetComponent<NPCAvoidance>();
 
         // Validate components
         if (seeker == null) UnityEngine.Debug.LogError($"Seeker component missing on {gameObject.name}");
         if (aiPath == null) UnityEngine.Debug.LogError($"AIPath component missing on {gameObject.name}");
+
+        // Configura AIPath
+        if (aiPath != null)
+        {
+            aiPath.endReachedDistance = arrivalDistance;
+            aiPath.slowdownDistance = arrivalDistance * 2f;
+        }
     }
 
     private void InitializeStopwatch()
@@ -100,13 +115,30 @@ public class AStarNPCController : MonoBehaviour
         lastUpdateTime = Time.time;
         frameCounter++;
 
-        // Update movement state and animation
-        UpdateMovementState();
-
-        // Recalculate path periodically (less frequently)
-        if (isMoving && frameCounter % (pathRecalculateFrameInterval / 10) == 0) // Ridotto intervallo
+        // Calcola distanza al target
+        if (target != null)
         {
-            CalculatePathToTarget();
+            distanceToTarget = Vector3.Distance(transform.position, target.position);
+        }
+
+        // Controlla se � arrivato alla destinazione
+        CheckArrivalAtDestination();
+
+        // Update movement state and animation solo se non � arrivato
+        if (!hasArrivedAtDestination)
+        {
+            UpdateMovementState();
+
+            // Recalculate path periodically (less frequently)
+            if (isMoving && frameCounter % (pathRecalculateFrameInterval / 10) == 0)
+            {
+                CalculatePathToTarget();
+            }
+        }
+        else
+        {
+            // Se � arrivato, ferma tutto
+            StopMovement();
         }
 
         // Update distance calculation (optional for performance)
@@ -116,14 +148,93 @@ public class AStarNPCController : MonoBehaviour
         }
     }
 
+    private void CheckArrivalAtDestination()
+    {
+        if (target == null) return;
+
+        bool wasArrived = hasArrivedAtDestination;
+
+        // Controlla se � arrivato basandosi su distanza e stato AIPath
+        hasArrivedAtDestination = (distanceToTarget <= arrivalDistance) ||
+                                 (aiPath != null && aiPath.reachedDestination);
+
+        // Se appena arrivato, forza il sistema di avoidance a fermarsi
+        if (!wasArrived && hasArrivedAtDestination && stopAtDestination)
+        {
+            if (npcAvoidance != null)
+            {
+                npcAvoidance.ForceStop();
+            }
+
+            StopMovement();
+        }
+        // Se non � pi� arrivato, riattiva il movimento
+        else if (wasArrived && !hasArrivedAtDestination)
+        {
+            ResumeMovement();
+        }
+    }
+
+    private void StopMovement()
+    {
+        // Disattiva tutti i Collider
+        foreach (var collider in GetComponentsInChildren<Collider>())
+        {
+            collider.enabled = false;
+        }
+
+        if (aiPath != null)
+        {
+            aiPath.canMove = false;
+        }
+
+        // Ferma il rigidbody
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        // Update animator
+        if (animator != null)
+        {
+            animator.SetFloat("Speed", 0f);
+        }
+
+        // AGGIUNTA: Ferma il timer quando si ferma il movimento
+        if (aStarTimer != null)
+        {
+            aStarTimer.ForceStopTimer();
+        }
+
+        isMoving = false;
+    }
+
+    private void ResumeMovement()
+    {
+        if (aiPath != null)
+        {
+            aiPath.canMove = true;
+        }
+
+        // Ricalcola il percorso
+        if (target != null)
+        {
+            CalculatePathToTarget();
+        }
+    }
+
     private void UpdateMovementState()
     {
+        if (aiPath == null) return;
+
         // Cache velocity per evitare accessi multipli
         cachedVelocity = aiPath.velocity;
         cachedSpeed = cachedVelocity.magnitude;
 
         bool wasMoving = isMoving;
-        isMoving = cachedSpeed > movementThreshold;
+        isMoving = cachedSpeed > movementThreshold && !hasArrivedAtDestination;
 
         // Update animator solo quando speed cambia significativamente
         if (animator != null && Mathf.Abs(animator.GetFloat("Speed") - cachedSpeed) > 0.1f)
@@ -153,7 +264,7 @@ public class AStarNPCController : MonoBehaviour
 
     public void CalculatePathToTarget()
     {
-        if (!ValidateComponents()) return;
+        if (!ValidateComponents() || hasArrivedAtDestination) return;
 
         // Set destination
         aiPath.destination = target.position;
@@ -199,12 +310,14 @@ public class AStarNPCController : MonoBehaviour
     {
         // Reset movement state
         isMoving = false;
+        hasArrivedAtDestination = false;
         distanceTravelled = 0f;
         lastPosition = transform.position;
         frameCounter = 0;
         hasValidPath = false;
         isInitialized = false;
         lastUpdateTime = Time.time + randomOffset;
+        distanceToTarget = float.MaxValue;
 
         // Reset pathfinding
         if (aiPath != null)
@@ -224,14 +337,39 @@ public class AStarNPCController : MonoBehaviour
         {
             animator.SetFloat("Speed", 0f);
         }
+
+        // Reset avoidance
+        if (npcAvoidance != null)
+        {
+            npcAvoidance.ForceDestinationCheck();
+        }
     }
 
     public void SetTarget(Transform newTarget)
     {
         target = newTarget;
+        hasArrivedAtDestination = false; // Reset arrival status
+
         if (isInitialized && target != null)
         {
             CalculatePathToTarget();
+        }
+    }
+
+    public void SetArrivalDistance(float distance)
+    {
+        arrivalDistance = Mathf.Max(0.1f, distance);
+
+        if (aiPath != null)
+        {
+            aiPath.endReachedDistance = arrivalDistance;
+            aiPath.slowdownDistance = arrivalDistance * 2f;
+        }
+
+        // Sincronizza con NPCAvoidance se presente
+        if (npcAvoidance != null)
+        {
+            npcAvoidance.SetDestinationRadius(arrivalDistance * 1.5f);
         }
     }
 
@@ -241,6 +379,8 @@ public class AStarNPCController : MonoBehaviour
     public float GetPathTime() => aStarTimer?.CurrentTimeSeconds ?? 0f;
     public bool HasValidPath() => hasValidPath;
     public bool IsMoving() => isMoving;
+    public bool HasArrived() => hasArrivedAtDestination;
+    public float GetDistanceToTarget() => distanceToTarget;
 
     // Cleanup
     private void OnDestroy()
@@ -265,4 +405,5 @@ public class AStarNPCController : MonoBehaviour
         this.spawner = spawner;
         isPooled = true;
     }
+
 }
