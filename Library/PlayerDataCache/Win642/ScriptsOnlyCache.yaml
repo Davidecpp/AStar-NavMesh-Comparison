@@ -7,7 +7,6 @@ ScriptsOnlyBuild:
     - FPSCounter
     - GameManager
     - Heatmap
-    - MapGenerator
     - MemoryUsage
     - MovingObstacle
     - NPCAvoidanceManager
@@ -53,8 +52,10 @@ ScriptsOnlyBuild:
     UnityEditor.Graphs.dll:
     - UnityEditor.Graphs.AnimationBlendTree.Graph
     - UnityEditor.Graphs.AnimationBlendTree.GraphGUI
+    - UnityEditor.Graphs.AnimationStateMachine.AnyStateNode
     - UnityEditor.Graphs.AnimationStateMachine.Graph
     - UnityEditor.Graphs.AnimationStateMachine.GraphGUI
+    - UnityEditor.Graphs.AnimationStateMachine.StateNode
     - UnityEditor.Graphs.AnimatorControllerTool
     UnityEditor.TestRunner.dll:
     - UnityEditor.TestTools.TestRunner.Api.CallbacksHolder
@@ -405,8 +406,6 @@ ScriptsOnlyBuild:
     - Class: 114
       Script: {instanceID: 29624}
     - Class: 114
-      Script: {instanceID: 29666}
-    - Class: 114
       Script: {instanceID: 29702}
     - Class: 114
       Script: {instanceID: 30248}
@@ -575,8 +574,6 @@ ScriptsOnlyBuild:
       Script: {instanceID: 29136}
     - Class: 114
       Script: {instanceID: 29624}
-    - Class: 114
-      Script: {instanceID: 29666}
     - Class: 114
       Script: {instanceID: 29702}
     - Class: 114
@@ -754,8 +751,6 @@ ScriptsOnlyBuild:
       Script: {instanceID: 29136}
     - Class: 114
       Script: {instanceID: 29624}
-    - Class: 114
-      Script: {instanceID: 29666}
     - Class: 114
       Script: {instanceID: 29702}
     - Class: 114
@@ -1821,12 +1816,6 @@ ScriptsOnlyBuild:
     className: AdvancedDropdownWindow
   - hash:
       serializedVersion: 2
-      Hash: a24377746a0f6e6f6231341951c282de
-    assemblyName: Assembly-CSharp
-    namespaceName: 
-    className: MapGenerator
-  - hash:
-      serializedVersion: 2
       Hash: 915204dac8acad99f076d6e72ada0a0f
     assemblyName: UnityEngine.UI
     namespaceName: UnityEngine.UI
@@ -2762,4 +2751,4 @@ ScriptsOnlyBuild:
   - Assets/Scenes/big.unity
   - Assets/Scenes/test 6.unity
   - Assets/Scenes/normal.unity
-  playerPath: C:/Users/davide.coppola/Desktop/build/pathfinding.exe
+  playerPath: C:/Users/davide.coppola/Desktop/build2/pathfinding.exe

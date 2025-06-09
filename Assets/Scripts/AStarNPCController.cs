@@ -15,15 +15,22 @@ public class AStarNPCController : MonoBehaviour
     [SerializeField] private float updateFrequency = 0.5f;
 
     [Header("Destination Settings")]
-    [SerializeField] private float arrivalDistance = 2f; 
+    [SerializeField] private float arrivalDistance = 2f;
     [SerializeField] private bool stopAtDestination = true;
+
+    [Header("Physics Settings")]
+    [SerializeField] private float maxVelocity = 10f;
+    [SerializeField] private float stuckCheckDistance = 0.1f;
+    [SerializeField] private float stuckTimeThreshold = 2f;
+    [SerializeField] private float unstuckForce = 5f;
 
     // Cached components
     private Seeker seeker;
     private Animator animator;
     private AIPath aiPath;
     private AStarTimer aStarTimer;
-    private NPCAvoidance npcAvoidance; 
+    private NPCAvoidance npcAvoidance;
+    private Rigidbody rb;
 
     // Movement tracking
     private Vector3 lastPosition;
@@ -32,12 +39,17 @@ public class AStarNPCController : MonoBehaviour
     private bool isInitialized = false;
     private bool hasArrivedAtDestination = false;
 
+    // Stuck detection
+    private Vector3 lastStuckCheckPosition;
+    private float stuckTimer = 0f;
+    private bool isStuck = false;
+
     // Performance optimizations
     private Stopwatch stopwatch;
     private int frameCounter = 0;
     private bool hasValidPath = false;
     private float lastUpdateTime = 0f;
-    private float randomOffset = 0f; // For spreading updates
+    private float randomOffset = 0f;
 
     // Object pooling support
     private bool isPooled = false;
@@ -64,16 +76,30 @@ public class AStarNPCController : MonoBehaviour
         animator = GetComponent<Animator>();
         aStarTimer = GetComponent<AStarTimer>();
         npcAvoidance = GetComponent<NPCAvoidance>();
+        rb = GetComponent<Rigidbody>();
 
         // Validate components
         if (seeker == null) UnityEngine.Debug.LogError($"Seeker component missing on {gameObject.name}");
         if (aiPath == null) UnityEngine.Debug.LogError($"AIPath component missing on {gameObject.name}");
+        if (rb == null) UnityEngine.Debug.LogError($"Rigidbody component missing on {gameObject.name}");
 
-        // Configure AIPath
+        // Configure AIPath with better settings
         if (aiPath != null)
         {
             aiPath.endReachedDistance = arrivalDistance;
             aiPath.slowdownDistance = arrivalDistance * 2f;
+            aiPath.maxSpeed = maxVelocity * 0.8f; // Slightly lower than physics limit
+            aiPath.pickNextWaypointDist = 1f; // Better waypoint picking
+            aiPath.whenCloseToDestination = CloseToDestinationMode.Stop;
+        }
+
+        // Configure Rigidbody for better physics
+        if (rb != null)
+        {
+            rb.mass = 1f;
+            rb.linearDamping = 2f; // Add damping to prevent sliding
+            rb.angularDamping = 5f;
+            rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
         }
     }
 
@@ -81,6 +107,7 @@ public class AStarNPCController : MonoBehaviour
     {
         stopwatch = new Stopwatch();
         lastPosition = transform.position;
+        lastStuckCheckPosition = transform.position;
         lastUpdateTime = Time.time + randomOffset;
     }
 
@@ -95,7 +122,17 @@ public class AStarNPCController : MonoBehaviour
     private IEnumerator InitializeDelayed()
     {
         // Wait a random delay to spread initialization across frames
-        yield return new WaitForSeconds(Random.Range(0.01f, 0.05f));
+        yield return new WaitForSeconds(Random.Range(0.01f, 0.1f));
+
+        // Stabilize position first
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        // Wait one more frame to ensure physics stability
+        yield return new WaitForFixedUpdate();
 
         if (target != null)
         {
@@ -126,9 +163,10 @@ public class AStarNPCController : MonoBehaviour
         if (!hasArrivedAtDestination)
         {
             UpdateMovementState();
+            CheckIfStuck();
 
-            // Recalculate path periodically
-            if (isMoving && frameCounter % (pathRecalculateFrameInterval / 10) == 0)
+            // Recalculate path periodically or if stuck
+            if ((isMoving && frameCounter % (pathRecalculateFrameInterval / 10) == 0) || isStuck)
             {
                 CalculatePathToTarget();
             }
@@ -142,6 +180,82 @@ public class AStarNPCController : MonoBehaviour
         if (enableDistanceCalculation && isMoving)
         {
             UpdateDistanceTravelled();
+        }
+
+        // Limit velocity to prevent physics explosions
+        LimitVelocity();
+    }
+
+    private void CheckIfStuck()
+    {
+        Vector3 currentPos = transform.position;
+        float distanceMoved = Vector3.Distance(currentPos, lastStuckCheckPosition);
+
+        if (distanceMoved < stuckCheckDistance && isMoving)
+        {
+            stuckTimer += updateFrequency;
+
+            if (stuckTimer >= stuckTimeThreshold)
+            {
+                isStuck = true;
+                UnstuckNPC();
+                stuckTimer = 0f;
+            }
+        }
+        else
+        {
+            stuckTimer = 0f;
+            isStuck = false;
+            lastStuckCheckPosition = currentPos;
+        }
+    }
+
+    private void UnstuckNPC()
+    {
+        if (rb == null) return;
+
+        // Apply random force to unstuck the NPC
+        Vector3 randomDirection = new Vector3(
+            Random.Range(-1f, 1f),
+            0f,
+            Random.Range(-1f, 1f)
+        ).normalized;
+
+        rb.AddForce(randomDirection * unstuckForce, ForceMode.Impulse);
+
+        // Also try to recalculate path immediately
+        if (target != null)
+        {
+            StartCoroutine(RecalculatePathDelayed());
+        }
+
+        UnityEngine.Debug.Log($"Unstucking NPC: {gameObject.name}");
+    }
+
+    private IEnumerator RecalculatePathDelayed()
+    {
+        yield return new WaitForSeconds(0.5f);
+        CalculatePathToTarget();
+    }
+
+    private void LimitVelocity()
+    {
+        if (rb == null) return;
+
+        Vector3 velocity = rb.linearVelocity;
+
+        // Limit horizontal velocity
+        Vector3 horizontalVelocity = new Vector3(velocity.x, 0, velocity.z);
+        if (horizontalVelocity.magnitude > maxVelocity)
+        {
+            horizontalVelocity = horizontalVelocity.normalized * maxVelocity;
+            rb.linearVelocity = new Vector3(horizontalVelocity.x, velocity.y, horizontalVelocity.z);
+        }
+
+        // Limit vertical velocity to prevent flying
+        if (Mathf.Abs(velocity.y) > maxVelocity * 0.5f)
+        {
+            rb.linearVelocity = new Vector3(velocity.x, Mathf.Sign(velocity.y) * maxVelocity * 0.5f, velocity.z);
         }
     }
 
@@ -185,7 +299,6 @@ public class AStarNPCController : MonoBehaviour
             aiPath.canMove = false;
         }
 
-        Rigidbody rb = GetComponent<Rigidbody>();
         if (rb != null)
         {
             rb.linearVelocity = Vector3.zero;
@@ -204,14 +317,23 @@ public class AStarNPCController : MonoBehaviour
         }
 
         isMoving = false;
+        isStuck = false;
+        stuckTimer = 0f;
     }
 
     private void ResumeMovement()
     {
+        // Reactivate colliders
+        foreach (var collider in GetComponentsInChildren<Collider>())
+        {
+            collider.enabled = true;
+        }
+
         if (aiPath != null)
         {
             aiPath.canMove = true;
         }
+
         if (target != null)
         {
             CalculatePathToTarget();
@@ -296,6 +418,12 @@ public class AStarNPCController : MonoBehaviour
         {
             UnityEngine.Debug.LogWarning($"Path calculation failed for {gameObject.name}: {path.errorLog}");
         }
+        else
+        {
+            // Reset stuck state when we get a valid path
+            isStuck = false;
+            stuckTimer = 0f;
+        }
     }
 
     // Object pooling support
@@ -306,17 +434,35 @@ public class AStarNPCController : MonoBehaviour
         hasArrivedAtDestination = false;
         distanceTravelled = 0f;
         lastPosition = transform.position;
+        lastStuckCheckPosition = transform.position;
         frameCounter = 0;
         hasValidPath = false;
         isInitialized = false;
         lastUpdateTime = Time.time + randomOffset;
         distanceToTarget = float.MaxValue;
 
+        // Reset stuck detection
+        isStuck = false;
+        stuckTimer = 0f;
+
         // Reset pathfinding
         if (aiPath != null)
         {
             aiPath.canMove = false;
             aiPath.destination = transform.position;
+        }
+
+        // Reset physics
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        // Reactivate colliders
+        foreach (var collider in GetComponentsInChildren<Collider>())
+        {
+            collider.enabled = true;
         }
 
         // Reset stopwatch
@@ -342,6 +488,8 @@ public class AStarNPCController : MonoBehaviour
     {
         target = newTarget;
         hasArrivedAtDestination = false;
+        isStuck = false;
+        stuckTimer = 0f;
 
         if (isInitialized && target != null)
         {
@@ -376,6 +524,7 @@ public class AStarNPCController : MonoBehaviour
     public bool IsMoving() => isMoving;
     public bool HasArrived() => hasArrivedAtDestination;
     public float GetDistanceToTarget() => distanceToTarget;
+    public bool IsStuck() => isStuck;
 
     // Cleanup
     private void OnDestroy()
@@ -400,5 +549,4 @@ public class AStarNPCController : MonoBehaviour
         this.spawner = spawner;
         isPooled = true;
     }
-
 }
