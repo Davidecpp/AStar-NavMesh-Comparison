@@ -244,7 +244,7 @@ MonoBehaviour:
   radius: 10
   height: 2
   canMove: 1
-  maxSpeed: 5
+  maxSpeed: 3
   gravity: {x: NaN, y: NaN, z: NaN}
   groundMask:
     serializedVersion: 2
@@ -420,6 +420,12 @@ MonoBehaviour:
   movementThreshold: 0.1
   enableDistanceCalculation: 1
   updateFrequency: 0.1
+  arrivalDistance: 2
+  stopAtDestination: 1
+  maxVelocity: 10
+  stuckCheckDistance: 0.1
+  stuckTimeThreshold: 2
+  unstuckForce: 5
 --- !u!114 &1830566920832929804
 MonoBehaviour:
   m_ObjectHideFlags: 0

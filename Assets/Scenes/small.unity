@@ -3321,6 +3321,10 @@ PrefabInstance:
       propertyPath: m_SizeDelta.y
       value: 270
       objectReference: {fileID: 0}
+    - target: {fileID: 5785615945678530691, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 31
+      objectReference: {fileID: 0}
     - target: {fileID: 5796315342732236221, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
       propertyPath: m_SizeDelta.x
       value: 550
@@ -3583,11 +3587,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7582270451504536478, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -0.000062942505
+      value: -0.000032424927
       objectReference: {fileID: 0}
     - target: {fileID: 7582270451504536478, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -0.000023126602
+      value: -0.000099252364
       objectReference: {fileID: 0}
     - target: {fileID: 7611346738502704035, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
       propertyPath: m_AnchoredPosition.x
@@ -3608,6 +3612,17 @@ PrefabInstance:
     - target: {fileID: 7822122001571789180, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
       propertyPath: m_LocalScale.z
       value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 7898298321170570488, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
+      propertyPath: m_text
+      value: '-ESC restart scene
+
+        -S save stats
+
+        -SPACE heatmap (q,w,e)
+
+        -TAB
+        stats'
       objectReference: {fileID: 0}
     - target: {fileID: 8027397573429057758, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
       propertyPath: m_SizeDelta.x
@@ -3662,8 +3677,16 @@ PrefabInstance:
       value: 71
       objectReference: {fileID: 0}
     - target: {fileID: 8178119856617660665, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 8178119856617660665, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
       propertyPath: m_LocalScale.y
       value: 0.77
+      objectReference: {fileID: 0}
+    - target: {fileID: 8178119856617660665, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 8178119856617660665, guid: 0f1f3115ba54fb543ae41fcf6e797554, type: 3}
       propertyPath: m_LocalPosition.x

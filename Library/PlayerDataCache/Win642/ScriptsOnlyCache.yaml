@@ -1804,7 +1804,7 @@ ScriptsOnlyBuild:
     className: Example50_Scatter
   - hash:
       serializedVersion: 2
-      Hash: 907a729f7a3c57f2ffff590fd74d97c2
+      Hash: 10a7ec84d9bf0e35f9296cb993ba5f14
     assemblyName: Assembly-CSharp
     namespaceName: 
     className: AStarNPCController
@@ -2751,4 +2751,4 @@ ScriptsOnlyBuild:
   - Assets/Scenes/big.unity
   - Assets/Scenes/test 6.unity
   - Assets/Scenes/normal.unity
-  playerPath: C:/Users/davide.coppola/Desktop/build2/pathfinding.exe
+  playerPath: C:/Users/davide.coppola/Desktop/build3/pathfinding.exe
