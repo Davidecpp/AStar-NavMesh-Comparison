@@ -1,0 +1,53 @@
+<b>== NPC NavMesh ==</b>
+<b>Totale NPCs:</b> 1000
+[1] NavM_NPC(Clone) - Dist: 99,0m, Path: 19,76s, Calc: 0,1ms
+[2] NavM_NPC(Clone) - Dist: 113,5m, Path: 27,40s, Calc: 0,1ms
+[3] NavM_NPC(Clone) - Dist: 98,9m, Path: 19,69s, Calc: 0,1ms
+[4] NavM_NPC(Clone) - Dist: 110,1m, Path: 27,48s, Calc: 0,1ms
+[5] NavM_NPC(Clone) - Dist: 119,5m, Path: 27,48s, Calc: 0,1ms
+[6] NavM_NPC(Clone) - Dist: 103,5m, Path: 19,55s, Calc: 0,1ms
+[7] NavM_NPC(Clone) - Dist: 108,5m, Path: 27,48s, Calc: 0,0ms
+[8] NavM_NPC(Clone) - Dist: 102,5m, Path: 19,62s, Calc: 0,1ms
+[9] NavM_NPC(Clone) - Dist: 106,4m, Path: 19,62s, Calc: 0,0ms
+[10] NavM_NPC(Clone) - Dist: 103,2m, Path: 19,62s, Calc: 0,0ms
+[11] NavM_NPC(Clone) - Dist: 101,6m, Path: 19,83s, Calc: 0,1ms
+[12] NavM_NPC(Clone) - Dist: 104,0m, Path: 27,33s, Calc: 0,1ms
+[13] NavM_NPC(Clone) - Dist: 101,2m, Path: 19,69s, Calc: 0,1ms
+[14] NavM_NPC(Clone) - Dist: 110,6m, Path: 27,24s, Calc: 0,1ms
+[15] NavM_NPC(Clone) - Dist: 106,2m, Path: 19,83s, Calc: 0,1ms
+[16] NavM_NPC(Clone) - Dist: 102,9m, Path: 19,83s, Calc: 0,1ms
+[17] NavM_NPC(Clone) - Dist: 110,3m, Path: 19,83s, Calc: 0,1ms
+[18] NavM_NPC(Clone) - Dist: 110,7m, Path: 27,33s, Calc: 0,1ms
+[19] NavM_NPC(Clone) - Dist: 93,5m, Path: 12,51s, Calc: 0,1ms
+[20] NavM_NPC(Clone) - Dist: 103,9m, Path: 19,83s, Calc: 0,1ms
+<i>... e altri 980 NPCs</i>
+<b>Media Distanza:</b> 0,00 m
+<b>Media PathTime:</b> 0,00 s
+<b>Media CalcTime:</b> 0,00 ms
+
+<b>== NPC A* ==</b>
+<b>Totale NPCs:</b> 1000
+[1] AStar_NPC(Clone) - Dist: 80,9m, Path: 11,25s, Calc: 7127,9ms
+[2] AStar_NPC(Clone) - Dist: 83,6m, Path: 11,78s, Calc: 7127,9ms
+[3] AStar_NPC(Clone) - Dist: 82,8m, Path: 11,53s, Calc: 7127,9ms
+[4] AStar_NPC(Clone) - Dist: 82,4m, Path: 11,53s, Calc: 7102,2ms
+[5] AStar_NPC(Clone) - Dist: 80,7m, Path: 11,16s, Calc: 481,2ms
+[6] AStar_NPC(Clone) - Dist: 28,1m, Path: 28,96s, Calc: 657,4ms
+[7] AStar_NPC(Clone) - Dist: 88,2m, Path: 14,14s, Calc: 799,5ms
+[8] AStar_NPC(Clone) - Dist: 89,2m, Path: 18,03s, Calc: 847,0ms
+[9] AStar_NPC(Clone) - Dist: 80,2m, Path: 10,89s, Calc: 7102,1ms
+[10] AStar_NPC(Clone) - Dist: 83,3m, Path: 11,98s, Calc: 481,1ms
+[11] AStar_NPC(Clone) - Dist: 83,4m, Path: 11,66s, Calc: 7012,0ms
+[12] AStar_NPC(Clone) - Dist: 85,2m, Path: 12,75s, Calc: 542,2ms
+[13] AStar_NPC(Clone) - Dist: 83,0m, Path: 11,78s, Calc: 7102,1ms
+[14] AStar_NPC(Clone) - Dist: 81,7m, Path: 11,23s, Calc: 7127,8ms
+[15] AStar_NPC(Clone) - Dist: 79,3m, Path: 10,75s, Calc: 481,1ms
+[16] AStar_NPC(Clone) - Dist: 88,7m, Path: 18,10s, Calc: 733,1ms
+[17] AStar_NPC(Clone) - Dist: 87,5m, Path: 12,79s, Calc: 800,3ms
+[18] AStar_NPC(Clone) - Dist: 84,3m, Path: 11,98s, Calc: 7011,8ms
+[19] AStar_NPC(Clone) - Dist: 86,1m, Path: 15,47s, Calc: 799,3ms
+[20] AStar_NPC(Clone) - Dist: 81,7m, Path: 11,16s, Calc: 481,1ms
+<i>... e altri 980 NPCs</i>
+<b>Media Distanza:</b> 0,00 m
+<b>Media PathTime:</b> 0,00 s
+<b>Media CalcTime:</b> 0,00 ms

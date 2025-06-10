@@ -59,7 +59,7 @@ public class WallPlacer : MonoBehaviour
         }
 
         // Check if the stats panel is open
-        if (NPCSpawner.panelStatsOpen)
+        if (NPCStatsManager.panelStatsOpen)
         {
             previewWall.SetActive(false);
             ClearHighlight();
