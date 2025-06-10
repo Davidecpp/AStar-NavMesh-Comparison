@@ -224,7 +224,7 @@ public class ObstacleManager : MonoBehaviour
     }
 
     // Removes existing obstacles from the scene
-    public void RemoveExistingObstacles()
+    private void RemoveExistingObstacles()
     {
         GameObject[] allObjects = FindObjectsOfType<GameObject>();
         int removed = 0;
@@ -239,6 +239,12 @@ public class ObstacleManager : MonoBehaviour
         }
 
         Debug.Log($"Rimossi {removed} ostacoli dal layer '{obstacleLayerName}'.");
+    }
+    public void ClearObstacles()
+    {
+        RemoveExistingObstacles();
+        placedPositions.Clear();
         StartCoroutine(DelayedUpdate());
+        Debug.Log("Ostacoli cancellati.");
     }
 }

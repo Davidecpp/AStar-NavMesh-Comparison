@@ -85,35 +85,22 @@
     <Compile Include="Assets\Scripts\MemoryUsage.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-09_12-17-45.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile-2-Pass.shader" />
-    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-09_11-08-54.txt" />
-    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-09_11-25-18.txt" />
-    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-09_12-37-22.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap.shader" />
-    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-09_11-33-11.txt" />
-    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-09_12-16-30.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Mobile.cginc" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF SSD.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Surface-Mobile.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\SDFFunctions.hlsl" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Surface.shader" />
-    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-09_12-51-02.txt" />
-    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-09_12-50-05.txt" />
     <None Include="Assets\TextMesh Pro\Sprites\EmojiOne Attribution.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap-Custom-Atlas.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile SSD.shader" />
     <None Include="Assets\TextMesh Pro\Resources\LineBreaking Leading Characters.txt" />
-    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-09_12-14-54.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Properties.cginc" />
-    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-09_11-17-37.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Surface.cginc" />
-    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-09_11-27-57.txt" />
-    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-09_11-57-22.txt" />
-    <None Include="Assets\NPCStatsLogs\NPC_Stats_2025-06-09_12-05-45.txt" />
     <None Include="Assets\TextMesh Pro\Resources\LineBreaking Following Characters.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Masking.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF Overlay.shader" />

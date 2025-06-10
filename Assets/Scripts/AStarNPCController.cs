@@ -83,21 +83,19 @@ public class AStarNPCController : MonoBehaviour
         if (aiPath == null) UnityEngine.Debug.LogError($"AIPath component missing on {gameObject.name}");
         if (rb == null) UnityEngine.Debug.LogError($"Rigidbody component missing on {gameObject.name}");
 
-        // Configure AIPath with better settings
         if (aiPath != null)
         {
             aiPath.endReachedDistance = arrivalDistance;
             aiPath.slowdownDistance = arrivalDistance * 2f;
-            aiPath.maxSpeed = maxVelocity * 0.8f; // Slightly lower than physics limit
-            aiPath.pickNextWaypointDist = 1f; // Better waypoint picking
+            aiPath.maxSpeed = maxVelocity * 0.8f; 
+            aiPath.pickNextWaypointDist = 1f; 
             aiPath.whenCloseToDestination = CloseToDestinationMode.Stop;
         }
 
-        // Configure Rigidbody for better physics
         if (rb != null)
         {
             rb.mass = 1f;
-            rb.linearDamping = 2f; // Add damping to prevent sliding
+            rb.linearDamping = 2f;
             rb.angularDamping = 5f;
             rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
         }
@@ -124,7 +122,6 @@ public class AStarNPCController : MonoBehaviour
         // Wait a random delay to spread initialization across frames
         yield return new WaitForSeconds(Random.Range(0.01f, 0.1f));
 
-        // Stabilize position first
         if (rb != null)
         {
             rb.linearVelocity = Vector3.zero;

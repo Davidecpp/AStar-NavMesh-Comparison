@@ -15,6 +15,7 @@ public class NPCSpawner : MonoBehaviour
     [Header("Spawn Settings")]
     public Transform spawnPoint;
     public Transform npcTarget;
+    [SerializeField] private float spawnRadius = 1.0f; // Raggio controllabile per lo spawn
 
     [Header("Performance Settings")]
     [SerializeField] private int spawnBatchSize = 10;
@@ -70,7 +71,6 @@ public class NPCSpawner : MonoBehaviour
     private Vector3[] spawnPositions = new Vector3[50]; // Max batch size buffer
     private readonly System.Random random = new System.Random();
 
-    // Struttura per tracciare le statistiche cumulative di calcTime
     private struct NPCCalcTimeStats
     {
         public double totalCalcTime;
@@ -97,7 +97,7 @@ public class NPCSpawner : MonoBehaviour
         }
     }
 
-    // Dizionari per tracciare le statistiche di calcTime per ogni NPC
+    // For storing calculation time statistics for each NPC type
     private Dictionary<NavMeshNPCController, NPCCalcTimeStats> navMeshCalcStats = new Dictionary<NavMeshNPCController, NPCCalcTimeStats>();
     private Dictionary<AStarNPCController, NPCCalcTimeStats> aStarCalcStats = new Dictionary<AStarNPCController, NPCCalcTimeStats>();
 
@@ -321,14 +321,13 @@ public class NPCSpawner : MonoBehaviour
     {
         for (int i = 0; i < batchSize; i++)
         {
-            // Use System.Random for better performance than UnityEngine.Random
-            float angle = (float)(random.NextDouble() * 2.0 * System.Math.PI);
-            float distance = (float)(random.NextDouble() * 1.5 + 0.5); // 0.5f to 2f range
+            // Genera una posizione casuale all'interno di un cerchio con raggio controllato
+            Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
 
             spawnPositions[i] = new Vector3(
-                basePos.x + Mathf.Cos(angle) * distance,
+                basePos.x + randomCircle.x,
                 basePos.y,
-                basePos.z + Mathf.Sin(angle) * distance
+                basePos.z + randomCircle.y
             );
         }
     }
@@ -392,8 +391,8 @@ public class NPCSpawner : MonoBehaviour
 
     private void SpawnAStarNPCOptimized(Vector3 spawnPos)
     {
-        // Inline the offset calculation
-        spawnPos.x += 1f;
+        // Offset minimo per evitare sovrapposizioni
+        spawnPos.x += 0.2f;
 
         GameObject aStarNpc = GetOrCreateAStarNPC();
 
@@ -458,7 +457,7 @@ public class NPCSpawner : MonoBehaviour
         // Only update stats if not spawning and panel is open
         if (!isSpawning && panelStatsOpen)
         {
-            UpdateCalcTimeStats(); 
+            UpdateCalcTimeStats();
             UpdateStats();
         }
     }
